@@ -125,8 +125,8 @@ local function enable_lsp_completion(client, bufnr)
   -- Built-in completion connects LSP candidates to Nvim's native popup menu.
   -- Keep it deliberately smaller than nvim-cmp/blink.cmp: LSP handles semantic
   -- candidates, while 'complete' below still provides lightweight keyword fallback.
-  vim.lsp.completion.enable(true, client.id, bufnr, {
-    autotrigger = buffer_autocomplete_enabled(bufnr),
+  vim.lsp.completion.enable(completion_popup_enabled, client.id, bufnr, {
+    autotrigger = completion_popup_enabled and buffer_autocomplete_enabled(bufnr),
   })
 end
 
@@ -139,6 +139,10 @@ local function toggle_completion_popup()
   -- that were already attached before this command was invoked.
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_loaded(bufnr) then
+      vim.api.nvim_buf_call(
+        bufnr,
+        function() vim.opt_local.autocomplete = completion_popup_enabled end
+      )
       for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
         enable_lsp_completion(client, bufnr)
       end
@@ -147,6 +151,20 @@ local function toggle_completion_popup()
 
   local state = completion_popup_enabled and 'enabled' or 'disabled'
   vim.notify('Automatic completion popup: ' .. state, vim.log.levels.INFO)
+end
+
+local function trigger_lsp_completion()
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not completion_popup_enabled then
+    -- Keep the popup toggle strict while preserving this explicit, one-shot
+    -- request path. Its automatic trigger stays off after this explicit request.
+    for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
+      if client:supports_method 'textDocument/completion' then
+        vim.lsp.completion.enable(true, client.id, bufnr, { autotrigger = false })
+      end
+    end
+  end
+  vim.lsp.completion.get()
 end
 
 local function toggle_lsp_completion_typing()
@@ -185,7 +203,7 @@ vim.api.nvim_create_autocmd('InsertCharPre', {
     -- ordinary invoked request so servers see the updated document and rapid
     -- typing does not create stale requests or reopen the menu on delimiters.
     vim.defer_fn(function()
-      if not lsp_completion_typing_enabled then return end
+      if not completion_popup_enabled or not lsp_completion_typing_enabled then return end
       if lsp_completion_request_generation[bufnr] ~= generation then return end
       if not vim.api.nvim_buf_is_valid(bufnr) or vim.api.nvim_get_current_buf() ~= bufnr then
         return
@@ -762,7 +780,7 @@ vim.keymap.set('n', '<leader>a', 'ggVG')
 vim.keymap.set('n', '<leader>cp', toggle_completion_popup, {
   desc = 'Toggle automatic completion popup',
 })
-vim.keymap.set('i', '<leader><Space>', vim.lsp.completion.get, { desc = 'Trigger LSP completion' })
+vim.keymap.set('i', '<leader><Space>', trigger_lsp_completion, { desc = 'Trigger LSP completion' })
 
 vim.keymap.set('i', '<Down>', function()
   if vim.fn.pumvisible() == 1 then return '<C-n>' end
