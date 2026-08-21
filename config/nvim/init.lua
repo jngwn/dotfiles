@@ -70,8 +70,11 @@ vim.lsp.log.set_level 'off'
 
 local servers = {
   'clangd',
+  -- Go tooling is Arch-owned; gopls resolves to the distro package on PATH.
+  'gopls',
   'lua_ls',
   'ruff',
+  'rust_analyzer',
   'ty',
 }
 
@@ -106,6 +109,18 @@ vim.lsp.config('ruff', {
     -- code actions, import organization, and formatting.
     client.server_capabilities.hoverProvider = false
   end,
+})
+
+-- Keep Rust's compiler, standard-library source, and analyzer on its one
+-- rustup-managed stable toolchain rather than mixing package-manager versions.
+vim.lsp.config('rust_analyzer', {
+  -- Arch's rustup package keeps optional component proxies outside /usr/bin.
+  cmd = { '/usr/lib/rustup/bin/rust-analyzer' },
+  settings = {
+    ['rust-analyzer'] = {
+      check = { command = 'clippy' },
+    },
+  },
 })
 
 vim.lsp.enable(servers)
@@ -1258,10 +1273,31 @@ local problem_languages = {
     run = { '{executable}' },
     temporary_executable = true,
   },
+  go = {
+    name = 'Go',
+    extensions = { 'go' },
+    run = { 'go', 'run', '{source}' },
+  },
   python = {
     name = 'Python',
     extensions = { 'py' },
     run = { 'python3', '{source}' },
+  },
+  rust = {
+    name = 'Rust',
+    extensions = { 'rs' },
+    compile = {
+      'rustc',
+      '-C',
+      'debuginfo=2',
+      '-C',
+      'opt-level=2',
+      '{source}',
+      '-o',
+      '{executable}',
+    },
+    run = { '{executable}' },
+    temporary_executable = true,
   },
   java = {
     name = 'Java',
@@ -1702,7 +1738,7 @@ end
 --   The runner saves the source first and uses <source-name>.in beside it as
 --   standard input when present. It otherwise runs without redirected input.
 --   Results replace the prior problem-runner terminal in the current tab.
---   <leader>er             n       Compile/run C, C++, Python, or Java in a terminal split
+--   <leader>er             n       Compile/run the current supported single-file source in a terminal split
 --   <leader>ei             n       Open <source-name>.in in a lower split
 --   <leader>et             n       Toggle input-file redirection for the current source
 --   These three maps are explicit no-ops for unsupported file extensions.

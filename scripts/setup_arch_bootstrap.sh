@@ -439,6 +439,8 @@ install_base_packages() { # {{{
   install_required_packages \
     mise \
     clang lldb \
+    rustup \
+    go gopls delve staticcheck govulncheck \
     shellcheck shfmt stylua taplo-cli lua-language-server \
     pre-commit
 
@@ -1132,6 +1134,32 @@ install_mise_managed_tools() { # {{{
   ' bash "${mise_config}"
 } # }}}
 
+setup_rust_toolchain() { # {{{
+  if [[ ! -x /usr/bin/rustup ]]; then
+    echo "WARN: rustup is not installed. Skipping Rust toolchain setup."
+    return 0
+  fi
+
+  echo ""
+  echo "INFO: Installing the stable Rust toolchain and editor components..."
+  # Rustup downloads reviewed upstream release binaries. Keep every Rust
+  # component on this one stable toolchain instead of mixing pacman, Cargo, or
+  # mise installations with versions that can drift apart.
+  run_as_target_user /usr/bin/rustup toolchain install stable \
+    --profile minimal \
+    --component rust-src \
+    --component rustfmt \
+    --component clippy \
+    --component rust-analyzer || {
+    echo "WARN: Failed to install the stable Rust toolchain or its components."
+    return 0
+  }
+
+  run_as_target_user /usr/bin/rustup default stable || {
+    echo "WARN: Failed to select the stable Rust toolchain as default."
+  }
+} # }}}
+
 _retry_mise_cli_install() { # {{{
   local -r display_name="${1:-}"
   local -r command_name="${2:-}"
@@ -1526,6 +1554,7 @@ main() { # {{{
     install_yay
     set_default_browser_to_firefox
     install_mise_managed_tools
+    setup_rust_toolchain
     retry_mise_cli_installs
     install_nerd_font
     setup_basic_network_privacy
