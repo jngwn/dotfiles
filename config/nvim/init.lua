@@ -1382,15 +1382,18 @@ local function open_problem_runner_output()
   if reuse_output then
     vim.api.nvim_set_current_win(problem_runner_window)
     vim.cmd 'resize 14'
+    local output_buffer = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_win_set_buf(problem_runner_window, output_buffer)
   else
     vim.cmd 'botright 14new'
     problem_runner_window = vim.api.nvim_get_current_win()
+    local output_buffer = vim.api.nvim_get_current_buf()
+    vim.bo[output_buffer].buflisted = false
   end
 
   -- A scratch buffer avoids inheriting the source filetype after a split. In
   -- particular, clangd must never receive a term:// URI as a C++ document.
-  local output_buffer = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_win_set_buf(problem_runner_window, output_buffer)
+  local output_buffer = vim.api.nvim_get_current_buf()
   vim.bo[output_buffer].bufhidden = 'wipe'
   vim.bo[output_buffer].swapfile = false
   vim.bo[output_buffer].filetype = 'terminal'
