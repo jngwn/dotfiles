@@ -14,6 +14,7 @@ if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then vim.g.clipboard = 'osc52' end
 vim.opt.termguicolors = true
 
 -- Feature defaults
+local completion_popup_enabled = true
 local lsp_completion_typing_enabled = true
 local format_on_save_enabled = true
 
@@ -129,6 +130,25 @@ local function enable_lsp_completion(client, bufnr)
   })
 end
 
+local function toggle_completion_popup()
+  completion_popup_enabled = not completion_popup_enabled
+  vim.opt.autocomplete = completion_popup_enabled
+
+  -- Existing LSP clients keep their completion provider, but changing the
+  -- autotrigger setting makes the popup toggle apply immediately to buffers
+  -- that were already attached before this command was invoked.
+  for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(bufnr) then
+      for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
+        enable_lsp_completion(client, bufnr)
+      end
+    end
+  end
+
+  local state = completion_popup_enabled and 'enabled' or 'disabled'
+  vim.notify('Automatic completion popup: ' .. state, vim.log.levels.INFO)
+end
+
 local function toggle_lsp_completion_typing()
   lsp_completion_typing_enabled = not lsp_completion_typing_enabled
   local state = lsp_completion_typing_enabled and 'enabled' or 'disabled'
@@ -145,7 +165,11 @@ vim.api.nvim_create_autocmd('InsertCharPre', {
     local generation = (lsp_completion_request_generation[bufnr] or 0) + 1
     lsp_completion_request_generation[bufnr] = generation
 
-    if not lsp_completion_typing_enabled or not buffer_autocomplete_enabled(args.buf) then
+    if
+      not completion_popup_enabled
+      or not lsp_completion_typing_enabled
+      or not buffer_autocomplete_enabled(args.buf)
+    then
       return
     end
 
@@ -175,6 +199,9 @@ vim.api.nvim_create_autocmd('InsertCharPre', {
 
 vim.api.nvim_create_user_command('LspCompletionTypingToggle', toggle_lsp_completion_typing, {
   desc = 'Toggle LSP completion while typing identifiers',
+})
+vim.api.nvim_create_user_command('CompletionPopupToggle', toggle_completion_popup, {
+  desc = 'Toggle automatic native and LSP completion popups',
 })
 -- }}}
 
@@ -534,7 +561,7 @@ vim.opt.completeopt = {
 vim.opt.pumborder = 'none'
 vim.opt.pumheight = 12
 vim.opt.pummaxwidth = 80
-vim.opt.autocomplete = true
+vim.opt.autocomplete = completion_popup_enabled
 vim.opt.autocompletedelay = 80
 
 -- Keep native keyword completion available beside LSP completion. The small
@@ -732,6 +759,9 @@ vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { silent = true })
 vim.keymap.set('n', '<leader>a', 'ggVG')
 
 -- Autocomplete
+vim.keymap.set('n', '<leader>cp', toggle_completion_popup, {
+  desc = 'Toggle automatic completion popup',
+})
 vim.keymap.set('i', '<leader><Space>', vim.lsp.completion.get, { desc = 'Trigger LSP completion' })
 
 vim.keymap.set('i', '<Down>', function()
@@ -1375,8 +1405,8 @@ vim.api.nvim_create_user_command('ProblemRun', run_problem_source, {
 
 local problem_runner_keymaps = {
   { lhs = '<leader>er', callback = run_problem_source, desc = 'Problem run' },
-  { lhs = '<leader>ef', callback = open_problem_input, desc = 'Problem input split' },
-  { lhs = '<leader>ev', callback = toggle_problem_input, desc = 'Problem toggle input' },
+  { lhs = '<leader>ei', callback = open_problem_input, desc = 'Problem input split' },
+  { lhs = '<leader>et', callback = toggle_problem_input, desc = 'Problem toggle input' },
 }
 
 local function configure_problem_runner_keymaps(bufnr)
@@ -1597,6 +1627,7 @@ end
 --   <leader>qq            n       Quit all windows
 --
 -- Completion
+--   <leader>cp             n       Toggle automatic native and LSP completion popups
 --   <leader><Space>       i       Trigger LSP completion
 --   <Up> / <Down>         i       Select the previous / next completion item
 --   <Tab> / <S-Tab>       i       Confirm completion or move between snippet stops
@@ -1651,8 +1682,8 @@ end
 --   standard input when present. It otherwise runs without redirected input.
 --   Results replace the prior problem-runner terminal in the current tab.
 --   <leader>er             n       Compile/run C, C++, Python, or Java in a terminal split
---   <leader>ef             n       Open <source-name>.in in a lower split
---   <leader>ev             n       Toggle input-file redirection for the current source
+--   <leader>ei             n       Open <source-name>.in in a lower split
+--   <leader>et             n       Toggle input-file redirection for the current source
 --   These three maps are explicit no-ops for unsupported file extensions.
 --   :ProblemRun                     Run the current single-file source
 --   :ProblemInputToggle             Toggle input-file redirection for the current source
@@ -1662,6 +1693,7 @@ end
 --   <leader>of / od       n, x    Copy absolute reference with lines / path only
 --
 -- Commands and maintenance
+--   :CompletionPopupToggle         Toggle automatic native and LSP completion popups
 --   :LspCompletionTypingToggle    Toggle automatic LSP completion requests
 --   :TrimWhitespace               Remove trailing whitespace from the buffer
 --   :TrimCarriageReturn           Remove carriage-return characters from the buffer
