@@ -1278,7 +1278,7 @@ local function open_problem_input()
       return
     end
   end
-  vim.cmd('rightbelow vsplit ' .. vim.fn.fnameescape(input_path))
+  vim.cmd('rightbelow split ' .. vim.fn.fnameescape(input_path))
   vim.bo.filetype = 'text'
 end
 
@@ -1323,6 +1323,31 @@ local function build_problem_command(source_path, language, input_path)
   return run_command
 end
 
+local problem_runner_window
+
+local function open_problem_runner_output()
+  local current_tabpage = vim.api.nvim_get_current_tabpage()
+  local reuse_output = problem_runner_window
+    and vim.api.nvim_win_is_valid(problem_runner_window)
+    and vim.api.nvim_win_get_tabpage(problem_runner_window) == current_tabpage
+
+  if reuse_output then
+    vim.api.nvim_set_current_win(problem_runner_window)
+    vim.cmd 'resize 14'
+  else
+    vim.cmd 'botright 14new'
+    problem_runner_window = vim.api.nvim_get_current_win()
+  end
+
+  -- A scratch buffer avoids inheriting the source filetype after a split. In
+  -- particular, clangd must never receive a term:// URI as a C++ document.
+  local output_buffer = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(problem_runner_window, output_buffer)
+  vim.bo[output_buffer].bufhidden = 'wipe'
+  vim.bo[output_buffer].swapfile = false
+  vim.bo[output_buffer].filetype = 'terminal'
+end
+
 local function run_problem_source()
   local bufnr, source_path, language = current_problem_source()
   if not source_path then return end
@@ -1334,10 +1359,11 @@ local function run_problem_source()
   end
 
   local command = build_problem_command(source_path, language, input_path)
-  vim.cmd 'botright 14split'
+  open_problem_runner_output()
   vim.fn.termopen({ 'sh', '-c', command }, {
     cwd = vim.fn.fnamemodify(source_path, ':h'),
   })
+  vim.cmd 'startinsert'
 end
 
 vim.api.nvim_create_user_command('ProblemInputToggle', toggle_problem_input, {
@@ -1347,10 +1373,40 @@ vim.api.nvim_create_user_command('ProblemRun', run_problem_source, {
   desc = 'Compile or run the current single-file problem source',
 })
 
--- p groups a focused problem-solving workflow: run, input, then toggle input.
-vim.keymap.set('n', '<leader>pr', run_problem_source, { desc = 'Problem run' })
-vim.keymap.set('n', '<leader>pi', open_problem_input, { desc = 'Problem input split' })
-vim.keymap.set('n', '<leader>pt', toggle_problem_input, { desc = 'Problem toggle input' })
+local problem_runner_keymaps = {
+  { lhs = '<leader>er', callback = run_problem_source, desc = 'Problem run' },
+  { lhs = '<leader>ef', callback = open_problem_input, desc = 'Problem input split' },
+  { lhs = '<leader>ev', callback = toggle_problem_input, desc = 'Problem toggle input' },
+}
+
+local function configure_problem_runner_keymaps(bufnr)
+  local extension = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ':e'):lower()
+  local supported = problem_language_by_extension[extension] ~= nil
+
+  for _, mapping in ipairs(problem_runner_keymaps) do
+    if supported then
+      vim.keymap.set('n', mapping.lhs, mapping.callback, {
+        buffer = bufnr,
+        desc = mapping.desc,
+      })
+    else
+      vim.keymap.set('n', mapping.lhs, '<Nop>', {
+        buffer = bufnr,
+        silent = true,
+        desc = 'Problem runner unavailable for this file type',
+      })
+    end
+  end
+end
+
+local problem_runner_keymap_group =
+  vim.api.nvim_create_augroup('problem_runner_keymaps', { clear = true })
+vim.api.nvim_create_autocmd({ 'BufEnter', 'BufFilePost' }, {
+  group = problem_runner_keymap_group,
+  callback = function(args) configure_problem_runner_keymaps(args.buf) end,
+  desc = 'Enable problem-runner keymaps only for supported source files',
+})
+configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
 -- }}}
 
 -- Trim carriage return {{{
@@ -1593,9 +1649,11 @@ end
 -- Single-file problem solving
 --   The runner saves the source first and uses <source-name>.in beside it as
 --   standard input when present. It otherwise runs without redirected input.
---   <leader>pr             n       Compile/run C, C++, Python, or Java in a terminal split
---   <leader>pi             n       Open <source-name>.in in a right-hand split
---   <leader>pt             n       Toggle input-file redirection for the current source
+--   Results replace the prior problem-runner terminal in the current tab.
+--   <leader>er             n       Compile/run C, C++, Python, or Java in a terminal split
+--   <leader>ef             n       Open <source-name>.in in a lower split
+--   <leader>ev             n       Toggle input-file redirection for the current source
+--   These three maps are explicit no-ops for unsupported file extensions.
 --   :ProblemRun                     Run the current single-file source
 --   :ProblemInputToggle             Toggle input-file redirection for the current source
 --
