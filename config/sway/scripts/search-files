@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+for required_command in /usr/bin/find fuzzel xdg-open xdg-user-dir; do
+  command -v "${required_command}" >/dev/null 2>&1 || exit 1
+done
+
+search_roots=()
+declare -A seen_roots=()
+
+_add_search_root() {
+  local -r candidate="${1}"
+
+  # Avoid turning an unset XDG directory into an unexpectedly broad HOME scan.
+  if [[ -z "${candidate}" || "${candidate}" == "${HOME}" || ! -d "${candidate}" ]]; then
+    return
+  fi
+  if [[ -n "${seen_roots["${candidate}"]:-}" ]]; then
+    return
+  fi
+
+  seen_roots["${candidate}"]=1
+  search_roots+=("${candidate}")
+}
+
+for xdg_name in DESKTOP DOCUMENTS DOWNLOAD MUSIC PICTURES VIDEOS; do
+  _add_search_root "$(xdg-user-dir "${xdg_name}" 2>/dev/null || true)"
+done
+_add_search_root "${HOME}/Projects"
+
+if ((${#search_roots[@]} == 0)); then
+  exit 0
+fi
+
+files=()
+mapfile -d '' -t files < <(
+  /usr/bin/find "${search_roots[@]}" \
+    -type d \
+    \( \
+    -name .git -o \
+    -name node_modules -o \
+    -name dist -o \
+    -name build -o \
+    -name .next -o \
+    -name .cache -o \
+    -name .turbo -o \
+    -name .vite -o \
+    -name coverage -o \
+    -name target -o \
+    -name __pycache__ -o \
+    -name .venv -o \
+    -name .idea -o \
+    -name .vscode -o \
+    -name .gradle \
+    \) -prune -o \
+    -type f -print0
+)
+
+if ((${#files[@]} == 0)); then
+  exit 0
+fi
+
+selected_index="$({ printf '%s\0' "${files[@]}"; } | fuzzel \
+  --dmenu0 \
+  --index \
+  --only-match \
+  --prompt='Files: ' \
+  --placeholder='Search Documents, Downloads, media, and Projects')" || exit 0
+
+if [[ ! "${selected_index}" =~ ^[0-9]+$ ]] || ((selected_index >= ${#files[@]})); then
+  exit 1
+fi
+
+xdg-open "${files[selected_index]}" >/dev/null 2>&1

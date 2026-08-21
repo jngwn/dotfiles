@@ -1,0 +1,75 @@
+{
+  "layer": "overlay",
+  "control-center-layer": "overlay",
+  "positionX": "right",
+  "positionY": "top",
+  "control-center-positionX": "right",
+  "control-center-positionY": "top",
+  "notification-window-width": 420,
+  "control-center-width": 440,
+  "control-center-margin-top": 8,
+  "control-center-margin-bottom": 8,
+  "control-center-margin-right": 8,
+  "control-center-margin-left": 8,
+  "timeout": 8,
+  "timeout-low": 4,
+  "timeout-critical": 0,
+  "keyboard-shortcuts": true,
+  "image-visibility": "when-available",
+  "notification-body-image-height": 120,
+  "notification-body-image-width": 240,
+  "relative-timestamps": true,
+  "fit-to-screen": true,
+  "widgets": [
+    "dnd",
+    "buttons-grid",
+    "mpris",
+    "volume",
+    "backlight",
+    "title",
+    "notifications"
+  ],
+  "widget-config": {
+    "dnd": {
+      "text": "Do Not Disturb"
+    },
+    "mpris": {
+      "show-album-art": "when-available",
+      "autohide": true
+    },
+    "buttons-grid": {
+      "buttons-per-row": 3,
+      "actions": [
+        {
+          "label": "Network",
+          "command": "nm-connection-editor"
+        },
+        {
+          "label": "Bluetooth",
+          "command": "blueman-manager"
+        },
+        {
+          "label": "Audio",
+          "command": "pavucontrol"
+        },
+        {
+          "label": "Displays",
+          "command": "wdisplays"
+        },
+        {
+          "label": "Disks",
+          "command": "gnome-disks"
+        },
+        {
+          "label": "Printers",
+          "command": "system-config-printer"
+        }
+      ]
+    },
+    "title": {
+      "text": "Notifications",
+      "clear-all-button": true,
+      "button-text": "Clear all"
+    }
+  }
+}

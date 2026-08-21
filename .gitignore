@@ -1,0 +1,8 @@
+/.codex
+/.agents
+tags
+.session.vim
+Session.vim
+*.log
+.bashrc.secret
+*.secret

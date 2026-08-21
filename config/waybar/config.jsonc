@@ -1,0 +1,158 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 34,
+  "spacing": 4,
+  "reload_style_on_change": true,
+  "modules-left": ["sway/workspaces", "sway/mode", "sway/scratchpad"],
+  // Active window titles can expose page, document, and terminal context.
+  "modules-center": ["clock"],
+  "modules-right": [
+    "privacy",
+    "custom/recording",
+    "tray",
+    "idle_inhibitor",
+    "network",
+    "bluetooth",
+    "pulseaudio",
+    "backlight",
+    "battery",
+    "power-profiles-daemon",
+    "custom/notification",
+    "custom/power"
+  ],
+  "sway/workspaces": {
+    "disable-scroll": false,
+    "all-outputs": false,
+    "format": "{name}"
+  },
+  "sway/mode": {
+    "format": "{}",
+    "tooltip": false
+  },
+  "sway/scratchpad": {
+    "format": "SP {count}",
+    "show-empty": false,
+    "tooltip": false
+  },
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  },
+  "privacy": {
+    "icon-spacing": 6,
+    "icon-size": 16,
+    "modules": [
+      {
+        "type": "screenshare",
+        "tooltip": false
+      },
+      {
+        "type": "audio-in",
+        "tooltip": false
+      }
+    ]
+  },
+  "custom/recording": {
+    "exec": "$HOME/.config/sway/scripts/recording-status",
+    "format": "{}",
+    "signal": 8,
+    "tooltip": false
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "INHIBIT",
+      "deactivated": "IDLE"
+    },
+    "tooltip-format-activated": "Automatic idle actions are paused",
+    "tooltip-format-deactivated": "Automatic lock and sleep are enabled"
+  },
+  "network": {
+    "interval": 5,
+    "format-wifi": "WIFI",
+    "format-ethernet": "LAN",
+    "format-linked": "LINK",
+    "format-disconnected": "OFFLINE",
+    "tooltip": false,
+    "on-click": "nm-connection-editor"
+  },
+  "bluetooth": {
+    "format": "BT",
+    "format-disabled": "BT OFF",
+    "format-no-controller": "",
+    "format-connected": "BT",
+    "tooltip": false,
+    "on-click": "blueman-manager"
+  },
+  "pulseaudio": {
+    "scroll-step": 5,
+    "format": "VOL {volume}%",
+    "format-bluetooth": "BT VOL {volume}%",
+    "format-muted": "MUTED",
+    "tooltip": false,
+    "on-click": "pavucontrol",
+    "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+  },
+  "backlight": {
+    "format": "BRI {percent}%",
+    "tooltip": false,
+    "on-scroll-up": "brightnessctl set +5%",
+    "on-scroll-down": "brightnessctl set 5%-"
+  },
+  "battery": {
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "BAT {capacity}%",
+    "format-charging": "BAT {capacity}%+",
+    "format-plugged": "AC {capacity}%",
+    "format-full": "AC FULL",
+    "tooltip-format": "{time} at {power:.1f} W"
+  },
+  "power-profiles-daemon": {
+    "format": "{profile}",
+    "tooltip-format": "Power profile: {profile}",
+    "format-icons": {
+      "default": "balanced",
+      "performance": "performance",
+      "balanced": "balanced",
+      "power-saver": "power saver"
+    }
+  },
+  "custom/notification": {
+    "return-type": "json",
+    "exec-if": "command -v swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "NOTIFY!",
+      "none": "NOTIFY",
+      "dnd-notification": "DND!",
+      "dnd-none": "DND",
+      "inhibited-notification": "PAUSED!",
+      "inhibited-none": "PAUSED",
+      "dnd-inhibited-notification": "DND!",
+      "dnd-inhibited-none": "DND"
+    },
+    "escape": true
+  },
+  "clock": {
+    "interval": 60,
+    "format": "{:%a %Y-%m-%d %H:%M}",
+    "tooltip-format": "<tt><small>{calendar}</small></tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "left",
+      "on-scroll": 1
+    }
+  },
+  "custom/power": {
+    "format": "POWER",
+    "tooltip": false,
+    "on-click": "$HOME/.config/sway/scripts/toggle-swaynag session-controls -t warning -m 'Session controls' -Z 'Lock' 'swaylock -f' -Z 'Suspend' 'systemctl suspend' -Z 'Logout' '$HOME/.config/sway/scripts/logout-session' -Z 'Reboot' 'systemctl reboot' -Z 'Power off' 'systemctl poweroff'"
+  }
+}

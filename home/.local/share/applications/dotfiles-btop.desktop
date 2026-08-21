@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=System Monitor (btop)
+Comment=Monitor processes and system resources with btop
+TryExec=/usr/bin/btop
+Exec=foot --app-id=dotfiles-btop /usr/bin/btop
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
+StartupNotify=false

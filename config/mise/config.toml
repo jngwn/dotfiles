@@ -1,0 +1,31 @@
+# Keep global mise ownership limited to version-switchable runtimes, their
+# user-owned ecosystem tools, and fast-moving upstream exceptions.
+[tools]
+node = "latest"
+# yt-dlp enables Deno by default for its external JavaScript component, which
+# provides full YouTube support without enabling a remote component fetch.
+deno = "latest"
+# Keep Python project-scoped so distro utilities using /usr/bin/env python3 do
+# not inherit an interpreter without Arch-provided modules.
+# IntelliJ owns Java/Spring integration; projects override this broadly supported
+# LTS baseline through their own mise declaration or build-tool configuration.
+java = "temurin-21"
+
+# Biome is the shared JavaScript workflow CLI; projects still own their pinned
+# formatter and linter version through a development dependency.
+"aqua:biomejs/biome" = "latest"
+
+# uv owns project Python runtimes; Ruff and ty are the matching shared editor
+# and validation defaults. Projects still pin their own dependencies and rules.
+"aqua:astral-sh/uv" = "latest"
+"aqua:astral-sh/ruff" = "latest"
+"aqua:astral-sh/ty" = "latest"
+
+# Track yt-dlp's official nightly release binaries because site extractors,
+# especially YouTube, can require fixes before the next stable release.
+# Nightly releases are GitHub prereleases, so include them explicitly.
+"github:yt-dlp/yt-dlp-nightly-builds" = { version = "latest", asset_pattern = "yt-dlp_linux", bin = "yt-dlp", prerelease = true }
+
+# Codex releases move faster than the distro baseline. Reconsider this
+# exception when the Arch package consistently tracks current upstream.
+"aqua:openai/codex" = "latest"

@@ -1,0 +1,29 @@
+# Core editor workflow
+vscodevim.vim
+editorconfig.editorconfig
+pkief.material-icon-theme
+naumovs.color-highlight
+
+# Web frontend development
+ecmel.vscode-html-css
+ms-vscode.live-server
+jock.svg
+meganrogge.template-string-converter
+unifiedjs.vscode-mdx
+bradlc.vscode-tailwindcss
+csstools.postcss
+styled-components.vscode-styled-components
+
+# Project-owned quality and testing tools
+biomejs.biome
+dbaeumer.vscode-eslint
+esbenp.prettier-vscode
+vitest.explorer
+
+# Language and data support
+redhat.vscode-yaml
+
+# User-invoked navigation and visualization
+lokalise.i18n-ally
+arcanis.vscode-zipfs
+mhutchie.git-graph

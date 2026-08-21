@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+for required_command in /usr/bin/jq swaymsg; do
+  command -v "${required_command}" >/dev/null 2>&1 || exit 1
+done
+
+_jq() {
+  /usr/bin/jq "$@"
+}
+
+_show_osd() {
+  if command -v swayosd-client >/dev/null 2>&1; then
+    swayosd-client --custom-message "${1}" >/dev/null 2>&1 || true
+  fi
+}
+
+_run_sway_command() {
+  local -r command_text="${1}"
+  local response
+
+  response="$(swaymsg --raw --type command "${command_text}")" || return 1
+  _jq --exit-status '
+    type == "array" and length > 0 and all(.[]; .success == true)
+  ' <<<"${response}" >/dev/null
+}
+
+tree_json="$(swaymsg --raw --type get_tree)" || exit 1
+
+# Native `split none` only unwraps a split with one child. Build a complete
+# plan before mutation so a multi-child group can be reparented without
+# flattening the workspace's top-level layout or losing focus and order.
+# jq variables are intentionally protected from shell expansion.
+# shellcheck disable=SC2016
+plan_json="$(_jq --compact-output '
+  def preferred_leaf_id:
+    if ((.nodes // []) | length) == 0 then
+      .id
+    else
+      . as $node
+      | ($node.focus[0] // $node.nodes[0].id) as $preferred_id
+      | (($node.nodes | map(select(.id == $preferred_id)) | first) // $node.nodes[0])
+      | preferred_leaf_id
+    end;
+
+  ([paths(objects | select(.focused? == true))] | first) as $focused_path
+  | if ($focused_path | type) != "array"
+      or ($focused_path | length) < 2
+      or $focused_path[-2] != "nodes"
+    then
+      { action: "none" }
+    else
+      getpath($focused_path) as $focused
+      | (if (($focused.nodes // []) | length) > 0 then
+          {
+            group_path: $focused_path,
+            parent_path: $focused_path[0:-2]
+          }
+        else
+          {
+            group_path: $focused_path[0:-2],
+            parent_path: $focused_path[0:-4]
+          }
+        end) as $paths
+      | getpath($paths.group_path) as $group
+      | getpath($paths.parent_path) as $parent
+      | ($parent.nodes // [] | map(.id) | index($group.id)) as $group_index
+      | if $group.type != "con" then
+          { action: "none" }
+        elif (($group.nodes // []) | length) == 1 then
+          {
+            action: "unwrap",
+            focused_id: ($focused | preferred_leaf_id)
+          }
+        elif $parent.type == "con"
+          and $group_index != null
+          and (($group.nodes // []) | length) > 1
+          and (($group.floating_nodes // []) | length) == 0
+        then
+          {
+            action: "flatten",
+            focused_id: ($focused | preferred_leaf_id),
+            parent_id: $parent.id,
+            parent_layout: $parent.layout,
+            following_count: (($parent.nodes | length) - $group_index - 1),
+            child_ids: ($group.nodes | map(.id))
+          }
+        else
+          { action: "none" }
+        end
+    end
+' <<<"${tree_json}")" || exit 1
+
+action="$(_jq --raw-output '.action' <<<"${plan_json}")" || exit 1
+
+case "${action}" in
+  unwrap)
+    focused_id="$(_jq --raw-output '.focused_id' <<<"${plan_json}")" || exit 1
+    if _run_sway_command "[con_id=${focused_id}] split none, focus"; then
+      _show_osd "Container level removed"
+      exit 0
+    fi
+    ;;
+  flatten)
+    focused_id="$(_jq --raw-output '.focused_id' <<<"${plan_json}")" || exit 1
+    parent_id="$(_jq --raw-output '.parent_id' <<<"${plan_json}")" || exit 1
+    parent_layout="$(_jq --raw-output '.parent_layout' <<<"${plan_json}")" || exit 1
+    following_count="$(_jq --raw-output '.following_count' <<<"${plan_json}")" || exit 1
+
+    case "${parent_layout}" in
+      splith | tabbed) move_direction="left" ;;
+      splitv | stacked) move_direction="up" ;;
+      *)
+        _show_osd "No nested container to flatten"
+        exit 0
+        ;;
+    esac
+
+    mapfile -t child_ids < <(_jq --raw-output '.child_ids[]' <<<"${plan_json}")
+    mark_name="_dotfiles_flatten_${BASHPID}_${parent_id}"
+
+    # The temporary mark gives every child the same destination even after
+    # Sway removes the emptied inner container.
+    if ! _run_sway_command "[con_id=${parent_id}] mark --add ${mark_name}"; then
+      _show_osd "Container flatten failed"
+      exit 1
+    fi
+
+    flatten_failed=false
+    for child_id in "${child_ids[@]}"; do
+      if ! _run_sway_command "[con_id=${child_id}] move container to mark ${mark_name}"; then
+        flatten_failed=true
+        break
+      fi
+
+      for ((step = 0; step < following_count; step++)); do
+        if ! _run_sway_command "[con_id=${child_id}] move ${move_direction}"; then
+          flatten_failed=true
+          break 2
+        fi
+      done
+    done
+
+    _run_sway_command "[con_mark=\"^${mark_name}$\"] unmark ${mark_name}" || true
+
+    focus_restored=false
+    if _run_sway_command "[con_id=${focused_id}] focus"; then
+      focus_restored=true
+    fi
+
+    if [[ "${flatten_failed}" == false && "${focus_restored}" == true ]]; then
+      _show_osd "Container flattened"
+      exit 0
+    fi
+    ;;
+  none)
+    _show_osd "No nested container to flatten"
+    exit 0
+    ;;
+esac
+
+printf 'ERROR: Failed to flatten the focused Sway container.\n' >&2
+_show_osd "Container flatten failed"
+exit 1
