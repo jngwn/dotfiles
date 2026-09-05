@@ -1,0 +1,60 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: detect-private-key
+
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: check-merge-conflict
+
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+      - id: check-yaml
+      - id: check-toml
+      # VS Code settings are JSONC, so validate them with Biome instead of check-json.
+      # - id: check-json
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: check-agent-references
+        name: check agent policy references
+        entry: scripts/check_agent_references.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: biome-check-jsonc
+        name: biome check json/jsonc
+        entry: /usr/bin/mise exec -- biome check --json-parse-allow-comments=true --json-parse-allow-trailing-commas=true --json-formatter-indent-style=space --json-formatter-indent-width=2
+        language: system
+        files: \.(json|jsonc)$
+
+      - id: shfmt
+        name: shfmt
+        entry: shfmt -i 2 -ci -w
+        language: system
+        files: ^(scripts/.*\.sh|config/(sway/scripts|power)/.*|config/system/sway/start-sway|config/bash/aliases\.sh|home/\.bash(_profile|rc))$
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck --shell=bash --exclude=SC1090 --exclude=SC1091
+        language: system
+        files: ^(scripts/.*\.sh|config/(sway/scripts|power)/.*|config/system/sway/start-sway|config/bash/aliases\.sh|home/\.bash(_profile|rc))$
+
+      - id: stylua
+        name: stylua
+        entry: stylua --config-path config/nvim/.stylua.toml
+        language: system
+        files: \.lua$

@@ -1,0 +1,269 @@
+#!/usr/bin/env bash
+
+# Keep dotfile deployment behavior centralized here.
+
+start_logging() {
+  local -r xdg_state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
+  local -r log_dir="${xdg_state_home}/dotfiles/logs"
+  local -r log_file="${log_dir}/$(date +%Y%m%d-%H%M%S)-deploy-dotfiles.log"
+
+  if ! command -v tee >/dev/null 2>&1; then
+    echo "ERROR: tee is required for logging." >&2
+    exit 1
+  fi
+
+  # Logs can contain user paths and command output, so keep them owner-only.
+  if ! mkdir -p "${log_dir}" || ! chmod 0700 "${log_dir}"; then
+    echo "ERROR: Could not create or protect log directory: ${log_dir}" >&2
+    exit 1
+  fi
+
+  if ! touch "${log_file}" || ! chmod 0600 "${log_file}"; then
+    echo "ERROR: Could not create or protect log file: ${log_file}" >&2
+    exit 1
+  fi
+
+  exec > >(tee -a "${log_file}") 2>&1
+
+  echo "INFO: Log file: ${log_file}"
+  echo ""
+}
+
+show_script_info() {
+  echo "INFO: basename: ${0##*/}"
+  echo "INFO: dirname : $(dirname "${0}")"
+  echo "INFO: pwd     : $(pwd)"
+  echo ""
+}
+
+is_arch() {
+  [[ -f /etc/os-release ]] || return 1
+  (
+    source /etc/os-release
+    [[ "${ID}" == "arch" ]]
+  )
+}
+
+is_supported_platform() {
+  is_arch || return 1
+
+  if [[ -r /proc/sys/kernel/osrelease ]] &&
+    grep -qiE '(microsoft|wsl)' /proc/sys/kernel/osrelease; then
+    return 1
+  fi
+
+  return 0
+}
+
+validate_platform() {
+  if ! is_supported_platform; then
+    echo "ERROR: Unsupported platform."
+    echo "   deploy_dotfiles.sh supports the maintained Arch Linux platform only."
+    return 1
+  fi
+}
+
+refuse_root_execution() {
+  if ((EUID == 0)); then
+    echo "ERROR: Do not run deploy_dotfiles.sh as root."
+    echo "   Run it as your normal user so HOME points to the account that owns these dotfiles."
+    exit 1
+  fi
+}
+
+initialize_variables() {
+  dotfiles_base="${HOME}/.dotfiles"
+  config_home="${XDG_CONFIG_HOME:-${HOME}/.config}"
+  backup_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/backups"
+  backup_run_dir="${backup_dir}/dotfiles-$(date +"%Y%m%d_%H%M%S")-$$"
+  mkdir -pv "${backup_run_dir}" || return
+  # The private parents protect moved files without rewriting their original modes.
+  chmod 0700 "${backup_dir}" "${backup_run_dir}"
+}
+
+find_and_move_to_dotfiles_root() {
+  dotfiles_root="$(cd "$(dirname "$0")/.." && pwd)" || {
+    echo "ERROR: Unable to find dotfiles root from script location."
+    return 1
+  }
+
+  echo "INFO: Dotfiles root: ${dotfiles_root}"
+  cd "${dotfiles_root}" || {
+    echo "ERROR: Unable to move to directory '${dotfiles_root}'."
+    return 1
+  }
+}
+
+create_dir() {
+  mkdir -pv "${1}"
+}
+
+backup_if_exists() {
+  local target_path="${1}"
+  if [ ! -e "${target_path}" ] && [ ! -L "${target_path}" ]; then
+    return 0
+  fi
+
+  local relative_path="${target_path#"${HOME}/"}"
+  local backup_path="${backup_run_dir}/${relative_path}"
+
+  echo "INFO: Backing up existing file/directory: ${target_path}"
+  mkdir -pv "$(dirname "${backup_path}")" || return
+  mv -fv "${target_path}" "${backup_path}"
+}
+
+create_symlink() {
+  local source_path="${1}"
+  local target_path="${2}"
+
+  if [ ! -e "${source_path}" ]; then
+    echo "ERROR: Source file/directory not found: ${source_path}"
+    return 1
+  fi
+
+  if [ -L "${target_path}" ] && [ "$(readlink "${target_path}")" = "${source_path}" ]; then
+    echo "DONE: Symlink already exists and is correct: ${target_path}"
+    return 0
+  fi
+
+  backup_if_exists "${target_path}" || return
+
+  ln --force --no-dereference --symbolic --verbose "${source_path}" "${target_path}"
+}
+
+link_recursive() {
+  local src_dir="${1}"
+  local dest_dir="${2}"
+
+  create_dir "${dest_dir}" || return
+
+  shopt -s dotglob nullglob
+
+  local failed=false
+
+  for item_path in "${src_dir}"/*; do
+    local item_name="${item_path##*/}"
+    local src_item="${src_dir}/${item_name}"
+    local dest_item="${dest_dir}/${item_name}"
+
+    if [ -d "${src_item}" ]; then
+      link_recursive "${src_item}" "${dest_item}" || failed=true
+    else
+      create_symlink "${src_item}" "${dest_item}" || failed=true
+    fi
+  done
+
+  shopt -u dotglob nullglob
+  [[ "${failed}" == "false" ]]
+}
+
+backup_and_copy_dotfiles() {
+  # Keep deployment deliberately simple: ~/.dotfiles is a disposable copy of
+  # the checked-out repository, replaced as a whole on each manual deployment.
+  # Preserve the previous copy for manual recovery instead of adding staging,
+  # manifests, automatic rollback, or pruning of paths in the user's home.
+  # If copying is interrupted after the move, rerun this script or restore the
+  # saved dotfiles_old directory from the run-specific backup.
+  if [ "${dotfiles_root}" != "${dotfiles_base}" ]; then
+    if [[ -e "${dotfiles_base}" || -L "${dotfiles_base}" ]]; then
+      mv -fv "${dotfiles_base}" "${backup_run_dir}/dotfiles_old" || return
+    fi
+
+    if command -v rsync &>/dev/null; then
+      rsync -av --exclude='.git' --exclude='.github' "${dotfiles_root}/" "${dotfiles_base}/" || return
+    else
+      create_dir "${dotfiles_base}" || return
+      shopt -s dotglob
+      local failed=false
+      for item in "${dotfiles_root}"/*; do
+        local item_name="${item##*/}"
+        if [[ "${item_name}" == "." || "${item_name}" == ".." || "${item_name}" == ".git" || "${item_name}" == ".github" ]]; then
+          continue
+        fi
+
+        cp --force --archive --verbose "${item}" "${dotfiles_base}" || failed=true
+      done
+      shopt -u dotglob
+      if [[ "${failed}" == "true" ]]; then
+        return 1
+      fi
+    fi
+
+    cd "${dotfiles_base}" || return
+  fi
+}
+
+symlink_dotfiles() {
+  local failed=false
+  local repo_home_dir="${dotfiles_base}/home"
+  if [ -d "${repo_home_dir}" ]; then
+    link_recursive "${repo_home_dir}" "${HOME}" || failed=true
+  fi
+
+  local repo_config_dir="${dotfiles_base}/config"
+  if [ -d "${repo_config_dir}" ]; then
+    create_dir "${config_home}" || return
+
+    shopt -s dotglob nullglob
+    for item_path in "${repo_config_dir}"/*; do
+      local item_name="${item_path##*/}"
+      if [[ "${item_name}" == "system" ]]; then
+        # System-owned config files are source material for bootstrap scripts.
+        # They should be installed into /etc by the owning OS setup function,
+        # not exposed as inert user config under ~/.config/system.
+        echo "INFO: Skipping system config symlinks: ${item_path}"
+        continue
+      fi
+
+      if [ -d "${item_path}" ]; then
+        link_recursive "${item_path}" "${config_home}/${item_name}" || failed=true
+      else
+        create_symlink "${item_path}" "${config_home}/${item_name}" || failed=true
+      fi
+    done
+    shopt -u dotglob nullglob
+  fi
+
+  [[ "${failed}" == "false" ]]
+}
+
+main() {
+  start_logging
+
+  if (($# > 0)); then
+    echo "ERROR: deploy_dotfiles.sh does not accept options."
+    echo "   Run without arguments."
+    exit 1
+  fi
+
+  refuse_root_execution
+  validate_platform || exit 1
+  show_script_info
+  initialize_variables || {
+    echo "ERROR: Could not initialize dotfile deployment paths."
+    exit 1
+  }
+  find_and_move_to_dotfiles_root || exit 1
+
+  echo ""
+  echo "INFO: Setup dotfiles start"
+  printf "%0.s-" {1..60}
+  echo ""
+
+  backup_and_copy_dotfiles || {
+    echo "ERROR: Could not prepare the ~/.dotfiles deployment copy."
+    exit 1
+  }
+  symlink_dotfiles || {
+    echo "ERROR: One or more dotfile symlinks could not be deployed."
+    exit 1
+  }
+
+  echo ""
+  printf "%0.s-" {1..60}
+  printf "\nDONE: Setup dotfiles done!\n"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "${@}"
+fi

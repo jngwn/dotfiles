@@ -1,0 +1,12 @@
+[Unit]
+Description=Waybar desktop panel
+PartOf=sway-session.target
+After=sway-session.target
+
+[Service]
+ExecStart=/usr/bin/waybar
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=sway-session.target

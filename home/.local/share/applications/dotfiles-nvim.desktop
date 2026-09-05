@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor (Neovim)
+Comment=Edit text files in Neovim
+TryExec=/usr/bin/nvim
+Exec=foot --app-id=dotfiles-nvim /usr/bin/mise exec -- /usr/bin/nvim %F
+Icon=nvim
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;application/json;application/xml;application/x-yaml;
+StartupNotify=false

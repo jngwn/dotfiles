@@ -1,0 +1,27 @@
+{
+  "name": "paper-custom-color-theme",
+  "displayName": "Paper Custom Color Theme",
+  "description": "A locally maintained VS Code theme for the dotfiles Paper color system.",
+  "version": "1.0.1",
+  "publisher": "local",
+  "private": true,
+  "license": "MPL-2.0",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Paper Custom",
+        "uiTheme": "vs",
+        "path": "./themes/paper-custom-color-theme.json"
+      }
+    ]
+  }
+}

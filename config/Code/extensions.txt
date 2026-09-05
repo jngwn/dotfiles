@@ -1,0 +1,24 @@
+# Core editor workflow
+vscodevim.vim
+editorconfig.editorconfig
+naumovs.color-highlight
+
+# React frontend development
+ecmel.vscode-html-css
+ms-vscode.live-server
+jock.svg
+meganrogge.template-string-converter
+unifiedjs.vscode-mdx
+bradlc.vscode-tailwindcss
+csstools.postcss
+styled-components.vscode-styled-components
+prisma.vscode-graphql
+ms-playwright.playwright
+
+# Project-owned quality and testing tools
+biomejs.biome
+vitest.explorer
+
+# Frontend workflow support
+lokalise.i18n-ally
+arcanis.vscode-zipfs

@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+
+# ReGreet launches this wrapper for both desktop and laptop installations.
+# The NVIDIA flag is added only when the module is active; supported Intel and
+# AMD paths use Sway's normal startup contract.
+_clear_session_clipboard_history() {
+  if [[ -z "${XDG_RUNTIME_DIR:-}" || "${XDG_RUNTIME_DIR}" != /* ]]; then
+    return 1
+  fi
+  if [[ ! -x /usr/bin/cliphist ]]; then
+    return 0
+  fi
+
+  local -r session_db="${XDG_RUNTIME_DIR}/cliphist/db"
+  if [[ ! -e "${session_db}" && ! -L "${session_db}" ]]; then
+    return 0
+  fi
+  if [[ -L "${session_db}" ]]; then
+    echo "WARN: Refusing to clear a symlinked session clipboard database: ${session_db}" >&2
+    return 1
+  fi
+  if [[ ! -f "${session_db}" || ! -O "${session_db}" ]]; then
+    echo "WARN: Refusing to clear an unexpected session clipboard database: ${session_db}" >&2
+    return 1
+  fi
+
+  chmod 600 "${session_db}" || return 1
+  /usr/bin/timeout --kill-after=1s 2s /usr/bin/cliphist -db-path "${session_db}" wipe
+}
+
+cleanup_session() {
+  # Notifications are session-scoped and should not survive logout.
+  if [[ -x /usr/bin/swaync-client ]]; then
+    /usr/bin/timeout --kill-after=1s 2s \
+      /usr/bin/swaync-client --close-all --skip-wait >/dev/null 2>&1 || true
+  fi
+  # Normal logout reaches this owner after requesting compositor exit, while an
+  # interrupted compositor reaches it directly. Bound every user-manager call
+  # so failed session cleanup cannot keep greetd from reclaiming the terminal.
+  /usr/bin/timeout --kill-after=1s 5s \
+    /usr/bin/systemctl --user stop sway-session.target >/dev/null 2>&1 || true
+  # Clipboard history must not survive the graphical login boundary.
+  _clear_session_clipboard_history >/dev/null 2>&1 || true
+  /usr/bin/timeout --kill-after=1s 5s /usr/bin/systemctl --user unset-environment \
+    DISPLAY WAYLAND_DISPLAY SWAYSOCK PATH SSH_AUTH_SOCK \
+    XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE \
+    MOZ_ENABLE_WAYLAND QT_QPA_PLATFORM SDL_VIDEODRIVER \
+    XMODIFIERS QT_IM_MODULE QT_IM_MODULES SDL_IM_MODULE \
+    >/dev/null 2>&1 || true
+}
+trap cleanup_session EXIT
+
+# Keep the graphical session on the OS PATH. Desktop helpers that intentionally
+# use user-owned development tools invoke distro-owned mise explicitly.
+export PATH="${PATH}:${HOME}/.local/bin"
+# Mirror the persistent XDG bases used by interactive Bash for graphical clients.
+# XDG_RUNTIME_DIR remains owned by PAM/systemd for the active login session.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-${HOME}/.local/state}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_DESKTOP=sway
+export XDG_SESSION_TYPE=wayland
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM='wayland;xcb'
+export SDL_VIDEODRIVER='wayland,x11'
+export XMODIFIERS=@im=fcitx
+export QT_IM_MODULE=fcitx
+export QT_IM_MODULES='wayland;fcitx'
+export SDL_IM_MODULE=fcitx
+
+# Clear data left by an interrupted session before clipboard watchers start.
+_clear_session_clipboard_history ||
+  echo "WARN: Could not initialize the session clipboard database." >&2
+
+# GUI and terminal clients share the one agent owned by sway-session.target.
+if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+  export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/ssh-agent.socket"
+fi
+
+sway_command=(/usr/bin/sway)
+if [[ -d /sys/module/nvidia_drm || -d /sys/module/nvidia ]]; then
+  sway_command+=(--unsupported-gpu)
+fi
+
+# Keep compositor, Xwayland and child diagnostic output out of greetd's tty.
+# systemd-cat connects both streams and returns Sway's exit status, so this
+# wrapper's EXIT cleanup remains tied to the compositor lifecycle.
+/usr/bin/systemd-cat \
+  --identifier=sway \
+  --priority=6 \
+  --stderr-priority=4 \
+  -- "${sway_command[@]}" "${@}"

@@ -1,0 +1,33 @@
+# Local secrets
+*.secret
+
+# Editor and session state
+tags
+.session.vim
+Session.vim
+
+# Logs and build artifacts
+*.log
+*.o
+*.out
+*.su
+nohup.out
+
+# Backup and temporary files
+*~
+*.old
+*.bak
+*.back
+*.backup
+*.ori
+*.orig
+*.original
+*.tmp
+*.temp
+*.temporary
+
+# Linux filesystem metadata
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

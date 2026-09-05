@@ -1,0 +1,3 @@
+# Match Oil's dotfile-first browsing behavior; press . to hide entries temporarily.
+[mgr]
+show_hidden = true

@@ -1,0 +1,88 @@
+# Preserve Yazi's maintained file and icon styling while mapping its shared UI
+# states to the Paper system. This keeps upstream file-type coverage intact.
+
+[mgr]
+cwd = { fg = "#006f8a", bold = true }
+find_keyword = { fg = "#000000", bg = "#ffd400", bold = true }
+find_position = { fg = "#ffffff", bg = "#9f3a30", bold = true }
+symlink_target = { fg = "#555555" }
+border_style = { fg = "#777777" }
+
+[tabs]
+active = { fg = "#000000", bg = "#b8ad94", bold = true }
+inactive = { fg = "#303030", bg = "#c8c3b3" }
+sep_inner = { open = "", close = "" }
+sep_outer = { open = "", close = "" }
+
+[mode]
+normal_main = { fg = "#000000", bg = "#b8ad94", bold = true }
+normal_alt = { fg = "#303030", bg = "#c8c3b3" }
+select_main = { fg = "#000000", bg = "#b7c9dc", bold = true }
+select_alt = { fg = "#000000", bg = "#e8e1cc" }
+unset_main = { fg = "#ffffff", bg = "#9f3a30", bold = true }
+unset_alt = { fg = "#000000", bg = "#ffebe9" }
+
+[indicator]
+parent = { bg = "#e8e1cc" }
+current = { fg = "#000000", bg = "#b7c9dc", bold = true }
+preview = { underline = true }
+padding = { open = "", close = "" }
+
+[status]
+overall = { fg = "#000000", bg = "#c8c3b3" }
+sep_left = { open = "", close = "" }
+sep_right = { open = "", close = "" }
+perm_sep = { fg = "#777777" }
+perm_type = { fg = "#216609" }
+perm_read = { fg = "#b58900" }
+perm_write = { fg = "#cc3e28" }
+perm_exec = { fg = "#158c86" }
+progress_normal = { fg = "#000000", bg = "#c5d9b8" }
+progress_error = { fg = "#ffffff", bg = "#7f1d1d" }
+
+[which]
+mask = { bg = "#eee8d5" }
+cand = { fg = "#000000" }
+rest = { fg = "#555555" }
+desc = { fg = "#303030" }
+separator_style = { fg = "#777777" }
+
+[confirm]
+border = { fg = "#777777" }
+title = { fg = "#000000", bold = true }
+btn_yes = { fg = "#000000", bg = "#b7c9dc", bold = true }
+btn_no = { fg = "#303030" }
+
+[spot]
+border = { fg = "#777777" }
+title = { fg = "#000000", bold = true }
+tbl_col = { fg = "#006f8a" }
+tbl_cell = { fg = "#000000", bg = "#b7c9dc" }
+
+[notify]
+title_info = { fg = "#3f5f2a" }
+title_warn = { fg = "#7a3f00" }
+title_error = { fg = "#cc3e28" }
+
+[pick]
+border = { fg = "#777777" }
+active = { fg = "#000000", bg = "#b7c9dc", bold = true }
+
+[input]
+border = { fg = "#777777" }
+title = { fg = "#000000", bold = true }
+selected = { fg = "#000000", bg = "#b7c9dc" }
+
+[cmp]
+border = { fg = "#777777" }
+active = { fg = "#000000", bg = "#b7c9dc", bold = true }
+
+[tasks]
+border = { fg = "#777777" }
+title = { fg = "#000000", bold = true }
+hovered = { fg = "#000000", bg = "#b7c9dc", bold = true }
+
+[help]
+border = { fg = "#777777" }
+chord = { fg = "#006f8a" }
+hovered = { fg = "#000000", bg = "#b7c9dc", bold = true }
