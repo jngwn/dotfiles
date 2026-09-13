@@ -399,9 +399,8 @@ history나 index도 추가하지 않으며 사용자 호출 또는 session 범�
   Site permission 예외는 사용자가 GUI에서 허용한다.
 
 `pclean`은 사용자 확인 후 실행하며 browser data, network/firewall policy와 Windows
-host data를 건드리지 않는다. Neovim Lua Language Server telemetry는 끄고 plugin
-update는 사용자 명령으로만 시작한다. 편집·terminal 복구 상태의 예외는 `STATE-001`이
-소유한다.
+host data를 건드리지 않는다. Neovim plugin update는 사용자 명령으로만 시작한다.
+편집·terminal 복구 상태의 예외는 `STATE-001`이 소유한다.
 
 **Change condition:** persistent state, background request, 저장 위치·수명·삭제 범위와
 journal vacuum을 바꾸려면 명시적인 사용자 결정이 필요하다.
@@ -438,8 +437,8 @@ application이 같은 credential store를 사용하게 한다. 진단 기록의 
 **Boundary:** tmux scrollback, mark와 buffer는 server memory에만 두며 session persistence
 plugin이나 disk history를 추가하지 않는다. Bash 진입점과 관리 명령은 `main`이라는
 하나의 tmux server를 공유하며 user-assigned window name을 자동으로 바꾸지 않는다.
-Neovim은 일반 file history를 최소화하되 ShaDa, undo와 view는 명시적으로 유지하는 작업
-복구 예외다.
+Neovim은 일반 file history를 최소화하되 ShaDa와 undo는 명시적으로 유지하는 작업 복구
+예외다.
 
 **Change condition:** state를 disk에 기록하거나 lifetime 또는 recovery 범위를 바꿀 때
 변경한다.
@@ -458,11 +457,10 @@ option 변경이 module·문서 전반으로 번지지 않는다.
 사용자 interface를 소유한다. 범위는 빠른 local edit/review, 단일-file 문제, 인접 파일
 관리, Git change review와 정확한 file reference다. Project build, test, dependency,
 debugging과 광범위한 automation은 terminal 또는 project가 소유한다. Plugin은 대체할
-수 없는 기능에만 사용하며 Treesitter와 새 LSP/completion 범위는 명시적 요청 없이
-추가하지 않는다.
+수 없는 기능에만 사용하며 Treesitter와 LSP 기반 기능은 유지 범위에 두지 않는다.
 
 **Change condition:** 설정 분할, workflow 위치, editor/project 소유권, plugin 또는 LSP
-범위를 바꿀 때만 변경한다.
+배제 경계를 바꿀 때만 변경한다.
 
 ## COLOR-001
 

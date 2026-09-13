@@ -1,18 +1,10 @@
 [settings]
 use_versions_host_track = false
-idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 node = "lts"
 java = "temurin-21"
 uv = "latest"
 "aqua:biomejs/biome" = "latest"
-"aqua:astral-sh/ruff" = "latest"
-"aqua:astral-sh/ty" = "latest"
 "github:yt-dlp/yt-dlp-nightly-builds" = { version = "latest", bin = "yt-dlp", prerelease = true }
 "aqua:openai/codex" = "latest"
-
-[tools.rust]
-version = "latest"
-profile = "minimal"
-components = ["rustfmt", "clippy", "rust-analyzer", "rust-src"]

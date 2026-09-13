@@ -1,29 +1,21 @@
 vim.g.mapleader = '\\'
-vim.g.maplocalleader = '\\'
 if vim.env.SSH_TTY or vim.env.SSH_CONNECTION then vim.g.clipboard = 'osc52' end
 vim.opt.termguicolors = true
 
 -- Neovim 0.12+ builtin package manager {{{
 -- Plugin List {{{
-local plugins = {
+vim.pack.add {
   { src = 'https://github.com/stevearc/oil.nvim' },
 }
 -- }}}
-
-vim.pack.add(plugins)
-
-local function require_plugin(name)
-  local ok, plugin = pcall(require, name)
-  if ok then return plugin end
-
-  vim.notify(('Failed to load %s:\n%s'):format(name, plugin), vim.log.levels.WARN)
-end
 -- Neovim 0.12+ builtin package manager }}}
 
 -- oil.nvim {{{
 do
-  local oil = require_plugin 'oil'
-  if oil then
+  local ok, oil = pcall(require, 'oil')
+  if not ok then
+    vim.notify(('Failed to load oil:\n%s'):format(oil), vim.log.levels.WARN)
+  else
     oil.setup {
       default_file_explorer = true,
       delete_to_trash = true,
@@ -39,7 +31,6 @@ do
       },
 
       float = {
-        padding = 2,
         max_width = 100,
         max_height = 0.8,
         border = 'single',
@@ -94,56 +85,35 @@ end
 -- }}}
 
 -- Options {{{
-vim.g.editorconfig = true
-
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 2
 vim.opt.softtabstop = 2
 vim.opt.tabstop = 2
-vim.opt.textwidth = 0
 
 vim.opt.ignorecase = true
-vim.opt.joinspaces = false
 vim.opt.smartcase = true
-vim.opt.smarttab = true
-vim.opt.wrapscan = true
 
-vim.opt.cmdheight = 1 -- (0 <-> 1)
 vim.opt.colorcolumn = '+1'
-vim.opt.cursorcolumn = false
 vim.opt.cursorline = true
 vim.opt.cursorlineopt = 'number'
-vim.opt.laststatus = 2 -- Global Statusline (2 <-> 3)
 vim.opt.list = true
 vim.opt.listchars = { tab = '→ ', trail = '·', extends = '»', precedes = '«', nbsp = '░' }
 vim.opt.fillchars = {
-  vert = '│',
   eob = ' ',
   fold = '-',
-  foldopen = '▾',
-  foldsep = ' ',
-  foldclose = '▸',
   diff = '╱',
-  stl = ' ',
-  stlnc = ' ',
 }
 vim.opt.number = true
-vim.opt.relativenumber = false
 vim.opt.shortmess:append 'c'
 vim.opt.showcmd = false
-vim.opt.showmode = true
-vim.opt.signcolumn = 'number'
-vim.opt.statuscolumn = ''
+vim.opt.statusline = " %{%&diff ? '%<%-20.50F' : '%f'%} %m%r %= %< %l/%L, %3c "
 
-vim.opt.display = 'lastline'
-vim.opt.inccommand = 'split'
 vim.opt.linebreak = true
 vim.opt.scrolloff = 8
 vim.opt.showbreak = '+++ '
 vim.opt.sidescrolloff = 8
 vim.opt.smoothscroll = true
 vim.opt.splitbelow = true
-vim.opt.splitkeep = 'screen'
 vim.opt.splitright = true
 vim.opt.virtualedit = 'block'
 vim.opt.wrap = false
@@ -160,125 +130,99 @@ vim.api.nvim_create_autocmd({ 'BufWinEnter', 'FileType' }, {
 
 vim.opt.autochdir = false -- Keep relative paths anchored to the explicit working directory.
 vim.opt.autoread = true
+vim.opt.undofile = true
+vim.opt.backup = false
+vim.opt.writebackup = false
+vim.opt.swapfile = false
 vim.opt.clipboard = 'unnamedplus'
 vim.opt.fileencodings = 'utf-8,euckr,cp949,latin1'
 vim.opt.isfname:remove '='
-vim.opt.langmenu = 'none'
-vim.opt.lazyredraw = false
 vim.opt.modeline = false
-vim.opt.mouse = 'a'
-vim.opt.synmaxcol = 250
-vim.opt.updatetime = 250
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
   command = 'checktime', -- For stable autoread
 })
 
 vim.opt.wildignorecase = true
-vim.opt.wildmenu = true
 vim.opt.wildmode = 'list:longest,full'
-vim.opt.foldmarker = '{{{,}}}'
 vim.opt.foldmethod = 'marker'
 vim.opt.foldopen:remove 'block'
-vim.opt.formatoptions = 'tcroqnlj'
 vim.opt.showmatch = true
 
-vim.opt.belloff = 'all'
-vim.opt.diffopt = {
-  'internal',
-  'filler',
-  'closeoff',
-  'indent-heuristic',
-  'inline:char',
-  'linematch:60',
-  'algorithm:histogram',
-  'vertical',
-}
-vim.opt.nrformats = 'alpha,octal,hex,bin,unsigned'
+vim.opt.diffopt:append 'vertical'
+
+vim.opt.background = 'light'
+if not pcall(vim.cmd.colorscheme, 'paper-custom') then vim.cmd.colorscheme 'default' end
 -- }}}
 
--- Language servers {{{
-vim.lsp.config('clangd', {
-  cmd = { 'clangd', '--fallback-style=LLVM' },
-  filetypes = { 'c' },
-  root_markers = { '.git' },
-})
+-- key-mapping {{{
+vim.keymap.set('i', 'jk', '<ESC>')
+vim.keymap.set({ 'n', 'v' }, ',', ':')
+vim.keymap.set('n', '<S-u>', '<C-r>')
+vim.keymap.set('n', 'Q', '<NOP>')
 
-vim.lsp.config('ruff', {
-  cmd = { 'ruff', 'server' },
-  filetypes = { 'python' },
-  root_markers = {
-    { 'pyproject.toml', 'ruff.toml', '.ruff.toml', 'uv.lock' },
-    '.git',
-  },
-})
+vim.keymap.set('n', 'j', 'gj')
+vim.keymap.set('n', 'k', 'gk')
+vim.keymap.set('n', '0', 'g0')
+vim.keymap.set('n', '^', 'g^')
+vim.keymap.set('n', '$', 'g$')
 
-vim.lsp.config('ty', {
-  cmd = { 'ty', 'server' },
-  filetypes = { 'python' },
-  root_markers = {
-    { 'pyproject.toml', 'ty.toml', 'uv.lock' },
-    '.git',
-  },
-})
+vim.keymap.set('v', '<', '<gv')
+vim.keymap.set('v', '>', '>gv')
 
-vim.lsp.config('lua_ls', {
-  cmd = { 'lua-language-server' },
-  filetypes = { 'lua' },
-  root_markers = {
-    { '.luarc.json', '.luarc.jsonc' },
-    '.git',
-  },
-  settings = {
-    Lua = {
-      diagnostics = {
-        globals = { 'vim' },
-      },
-      telemetry = {
-        enable = false,
-      },
-      workspace = {
-        checkThirdParty = false,
-        library = vim.api.nvim_get_runtime_file('', true),
-      },
-    },
-  },
-})
+vim.keymap.set('n', 'n', 'nzz')
+vim.keymap.set('n', 'N', 'Nzz')
+vim.keymap.set('n', '*', '*zz')
+vim.keymap.set('n', '#', '#zz')
 
-vim.lsp.config('rust_analyzer', {
-  cmd = { 'rust-analyzer' },
-  filetypes = { 'rust' },
-  root_markers = {
-    { 'Cargo.toml', 'rust-project.json' },
-    '.git',
-  },
-  settings = {
-    ['rust-analyzer'] = {
-      check = {
-        command = 'clippy',
-      },
-    },
-  },
-})
+vim.keymap.set('n', '<leader>v', '<C-v>')
+vim.keymap.set('i', '{<CR>', '{<CR>}<Esc>O')
+vim.keymap.set('n', '<leader>bb', '<C-o>', { desc = 'Jump Back' })
+vim.keymap.set('n', '<leader>gg', '<C-i>', { desc = 'Jump Forward' })
+vim.keymap.set('n', '<leader>ss', '<C-^>', { desc = 'Switch Alternate Buffer' })
 
-vim.lsp.enable { 'clangd', 'ruff', 'ty', 'lua_ls', 'rust_analyzer' }
+local blackhole_keys = { 'c', 'C', 's', 'S', 'x', 'X' }
+for _, key in ipairs(blackhole_keys) do
+  vim.keymap.set({ 'n', 'v' }, key, '"_' .. key)
+end
+
+-- Visual P replaces the selection without overwriting the unnamed register.
+-- Map p to that behavior so repeated paste keeps the copied text stable.
+vim.keymap.set('x', 'p', 'P')
+
+vim.keymap.set('n', '[b', '<cmd>bprevious<CR>', { silent = true })
+vim.keymap.set('n', ']b', '<cmd>bnext<CR>', { silent = true })
+vim.keymap.set('n', '[B', '<cmd>bfirst<CR>', { silent = true })
+vim.keymap.set('n', ']B', '<cmd>blast<CR>', { silent = true })
+vim.keymap.set('n', '[t', '<cmd>tabprevious<CR>', { silent = true })
+vim.keymap.set('n', ']t', '<cmd>tabnext<CR>', { silent = true })
+
+vim.keymap.set('n', '<leader>w', '<C-w>')
+vim.keymap.set('n', '<leader>1', '<C-w>h')
+vim.keymap.set('n', '<leader>2', '<C-w>j')
+vim.keymap.set('n', '<leader>3', '<C-w>k')
+vim.keymap.set('n', '<leader>4', '<C-w>l')
+vim.keymap.set('n', '<leader>5', '<cmd>vertical resize -10<CR>', { silent = true })
+vim.keymap.set('n', '<leader>6', '<cmd>resize -10<CR>', { silent = true })
+vim.keymap.set('n', '<leader>7', '<cmd>resize +10<CR>', { silent = true })
+vim.keymap.set('n', '<leader>8', '<cmd>vertical resize +10<CR>', { silent = true })
+
+vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { silent = true })
+vim.keymap.set('n', '<leader>a', 'ggVG')
 -- }}}
 
--- LSP completion {{{
--- Use semantic completion only. Trigger while typing identifiers or after
--- server-defined syntax characters, but never on whitespace.
+-- Keyword completion {{{
+vim.opt.complete = { '.' }
 vim.opt.completeopt = {
   'menuone',
   'noinsert',
   'noselect',
 }
-vim.opt.winborder = 'single'
 vim.opt.pumborder = 'single'
 vim.opt.pumheight = 12
 vim.opt.pummaxwidth = 80
-vim.opt.autocomplete = true
-vim.opt.complete = { 'o' }
+vim.opt.autocomplete = false
 
-local function toggle_completion_popup()
+local function toggle_keyword_completion()
   local enabled = not vim.o.autocomplete
   vim.opt.autocomplete = enabled
 
@@ -289,43 +233,16 @@ local function toggle_completion_popup()
   end
 
   vim.notify(
-    'Automatic completion popup: ' .. (enabled and 'enabled' or 'disabled'),
+    'Automatic keyword completion: ' .. (enabled and 'enabled' or 'disabled'),
     vim.log.levels.INFO
   )
 end
 
-local function enable_lsp_completion(client, bufnr)
-  if not client:supports_method 'textDocument/completion' then return false end
-
-  local completion_provider = client.server_capabilities.completionProvider
-  if not completion_provider then return false end
-
-  -- Native LSP completion otherwise uses only server-defined punctuation such
-  -- as '.', '>', or ':'. Add identifier characters for IDE-like suggestions
-  -- while leaving spaces and unrelated punctuation alone.
-  local trigger_characters = {}
-  for _, character in ipairs(completion_provider.triggerCharacters or {}) do
-    trigger_characters[character] = true
-  end
-  for byte = string.byte '0', string.byte '9' do
-    trigger_characters[string.char(byte)] = true
-  end
-  for byte = string.byte 'A', string.byte 'Z' do
-    trigger_characters[string.char(byte)] = true
-  end
-  trigger_characters._ = true
-  for byte = string.byte 'a', string.byte 'z' do
-    trigger_characters[string.char(byte)] = true
-  end
-  completion_provider.triggerCharacters = vim.tbl_keys(trigger_characters)
-
-  vim.bo[bufnr].omnifunc = 'v:lua.vim.lsp.omnifunc'
-  vim.lsp.completion.enable(true, client.id, bufnr, { autotrigger = true })
-  return true
-end
-
-vim.keymap.set('n', '<leader>cp', toggle_completion_popup, {
-  desc = 'Toggle automatic completion popup',
+vim.keymap.set('n', '<leader>cp', toggle_keyword_completion, {
+  desc = 'Toggle automatic keyword completion',
+})
+vim.keymap.set('i', '<leader><Space>', '<C-n>', {
+  desc = 'Complete words from current buffer',
 })
 
 vim.keymap.set('i', '<Down>', function()
@@ -336,196 +253,31 @@ vim.keymap.set('i', '<Up>', function()
   if vim.fn.pumvisible() == 1 then return '<C-p>' end
   return '<Up>'
 end, { expr = true, desc = 'Select previous completion item' })
-
-local function cursor_is_in_indent()
-  local column = vim.api.nvim_win_get_cursor(0)[2]
-  return vim.api.nvim_get_current_line():sub(1, column):match '^%s*$' ~= nil
-end
-
 vim.keymap.set('i', '<Tab>', function()
   if vim.fn.pumvisible() == 1 then
-    if cursor_is_in_indent() then return '<C-e><Tab>' end
     local selected = vim.fn.complete_info({ 'selected' }).selected
     return selected >= 0 and '<C-y>' or '<C-n><C-y>'
   end
-  if vim.snippet.active { direction = 1 } then
-    vim.snippet.jump(1)
-    return ''
-  end
   return '<Tab>'
-end, { expr = true, desc = 'Confirm completion or jump snippet forward' })
+end, { expr = true, desc = 'Confirm completion' })
 vim.keymap.set('i', '<S-Tab>', function()
   if vim.fn.pumvisible() == 1 then return '<C-p>' end
-  if vim.snippet.active { direction = -1 } then
-    vim.snippet.jump(-1)
-    return ''
-  end
   return '<S-Tab>'
-end, { expr = true, desc = 'Select previous completion or jump snippet backward' })
+end, { expr = true, desc = 'Select previous completion item' })
 vim.keymap.set('i', '<CR>', function()
   if vim.fn.pumvisible() == 1 then
     local selected = vim.fn.complete_info({ 'selected' }).selected
     return selected >= 0 and '<C-y>' or '<C-e><CR>'
   end
   return '<CR>'
-end, {
-  expr = true,
-  desc = 'Confirm completion or insert newline',
-})
--- }}}
-
--- LSP interaction {{{
-vim.diagnostic.config {
-  float = {
-    border = 'single',
-    source = 'if_many',
-  },
-  jump = {
-    float = true,
-  },
-  severity_sort = true,
-  signs = true,
-  underline = true,
-  virtual_text = false,
-}
-
-local function open_quickfix() vim.cmd 'copen 20' end
-
-local function show_diagnostics_in_quickfix()
-  if #vim.diagnostic.get() == 0 then
-    vim.notify('No diagnostics are available.', vim.log.levels.INFO)
-    return
-  end
-  vim.diagnostic.setqflist { open = false, title = 'Diagnostics' }
-  open_quickfix()
-end
-
-vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, {
-  desc = 'Show diagnostics',
-})
-vim.keymap.set('n', '<leader>qd', show_diagnostics_in_quickfix, {
-  desc = 'List diagnostics in quickfix',
-})
-
-local lsp_keymap_group = vim.api.nvim_create_augroup('UserLspKeymaps', { clear = true })
-local lsp_document_highlight_group =
-  vim.api.nvim_create_augroup('UserLspDocumentHighlight', { clear = true })
-local function toggle_lsp_display(feature, label, bufnr)
-  local enabled = not feature.is_enabled { bufnr = bufnr }
-  feature.enable(enabled, { bufnr = bufnr })
-  vim.notify(label .. ': ' .. (enabled and 'enabled' or 'disabled'), vim.log.levels.INFO)
-end
-
-local function list_workspace_folders()
-  local folders = vim.lsp.buf.list_workspace_folders()
-  local message = 'No workspace folders.'
-  if #folders > 0 then message = table.concat(folders, '\n') end
-  vim.notify(message, vim.log.levels.INFO)
-end
-
-local function enable_document_highlight(bufnr)
-  if vim.b[bufnr].lsp_document_highlight_enabled then return end
-
-  vim.b[bufnr].lsp_document_highlight_enabled = true
-  vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-    group = lsp_document_highlight_group,
-    buffer = bufnr,
-    callback = vim.lsp.buf.document_highlight,
-    desc = 'Highlight references at the cursor',
-  })
-  vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'BufLeave' }, {
-    group = lsp_document_highlight_group,
-    buffer = bufnr,
-    callback = vim.lsp.buf.clear_references,
-    desc = 'Clear LSP reference highlights',
-  })
-end
-
-vim.api.nvim_create_autocmd('LspAttach', {
-  group = lsp_keymap_group,
-  callback = function(args)
-    local client = vim.lsp.get_client_by_id(args.data.client_id)
-    if not client then return end
-
-    local bufnr = args.buf
-    local function map(mode, lhs, rhs, desc)
-      vim.keymap.set(mode, lhs, rhs, {
-        buffer = bufnr,
-        desc = desc,
-        silent = true,
-      })
-    end
-
-    map('n', 'gd', vim.lsp.buf.definition, 'Go to definition')
-    map('n', 'gD', vim.lsp.buf.declaration, 'Go to declaration')
-    if client:supports_method 'textDocument/prepareTypeHierarchy' then
-      map('n', 'grs', function() vim.lsp.buf.typehierarchy 'supertypes' end, 'List supertypes')
-      map('n', 'grb', function() vim.lsp.buf.typehierarchy 'subtypes' end, 'List subtypes')
-    end
-    if client:supports_method 'workspace/symbol' then
-      map('n', '<leader>ws', vim.lsp.buf.workspace_symbol, 'Search workspace symbols')
-    end
-    if client:supports_method 'workspace/diagnostic' then
-      map('n', '<leader>qD', vim.lsp.buf.workspace_diagnostics, 'List workspace diagnostics')
-    end
-    if client:supports_method 'textDocument/prepareCallHierarchy' then
-      map('n', '<leader>ci', vim.lsp.buf.incoming_calls, 'List incoming calls')
-      map('n', '<leader>co', vim.lsp.buf.outgoing_calls, 'List outgoing calls')
-    end
-
-    if client:supports_method 'textDocument/documentHighlight' then
-      enable_document_highlight(bufnr)
-    end
-    if client:supports_method 'textDocument/inlayHint' then
-      map(
-        'n',
-        '<leader>th',
-        function() toggle_lsp_display(vim.lsp.inlay_hint, 'Inlay hints', bufnr) end,
-        'Toggle inlay hints'
-      )
-    end
-    if client:supports_method 'textDocument/codeLens' then
-      map(
-        'n',
-        '<leader>tl',
-        function() toggle_lsp_display(vim.lsp.codelens, 'Code lens', bufnr) end,
-        'Toggle code lens'
-      )
-    end
-    if client:supports_method 'textDocument/linkedEditingRange' then
-      vim.lsp.linked_editing_range.enable(true, { bufnr = bufnr })
-    end
-    if client:supports_method 'textDocument/inlineCompletion' then
-      vim.lsp.inline_completion.enable(true, { bufnr = bufnr })
-      vim.keymap.set('i', '<leader>ic', vim.lsp.inline_completion.get, {
-        buffer = bufnr,
-        desc = 'Accept inline completion',
-      })
-    end
-    if client:supports_method 'textDocument/semanticTokens/full' then
-      vim.lsp.semantic_tokens.enable(true, { bufnr = bufnr })
-      map(
-        'n',
-        '<leader>ts',
-        function() toggle_lsp_display(vim.lsp.semantic_tokens, 'Semantic tokens', bufnr) end,
-        'Toggle semantic tokens'
-      )
-    end
-
-    map('n', '<leader>wa', vim.lsp.buf.add_workspace_folder, 'Add workspace folder')
-    map('n', '<leader>wr', vim.lsp.buf.remove_workspace_folder, 'Remove workspace folder')
-    map('n', '<leader>wl', list_workspace_folders, 'List workspace folders')
-
-    if enable_lsp_completion(client, bufnr) then
-      map('i', '<leader><Space>', vim.lsp.completion.get, 'Request language-server completion')
-    end
-  end,
-})
+end, { expr = true, desc = 'Confirm completion or insert newline' })
 -- }}}
 
 -- Project search {{{
 vim.opt.grepprg = 'rg --vimgrep --smart-case'
 vim.opt.grepformat = '%f:%l:%c:%m'
+
+local function open_quickfix() vim.cmd 'copen 20' end
 
 local project_files_quickfix_context = { kind = 'project_files' }
 
@@ -694,179 +446,6 @@ vim.api.nvim_create_autocmd('FileType', {
     })
   end,
 })
--- }}}
-
--- History {{{
-local state_dir = vim.fn.stdpath 'state'
-local history_dir = state_dir .. '/history/'
-local sub_dirs = { 'undo', 'backup', 'swap', 'view' }
-
-for _, dir in ipairs(sub_dirs) do
-  local path = history_dir .. dir
-  if vim.fn.isdirectory(path) == 0 then vim.fn.mkdir(path, 'p', '0700') end
-end
-
-vim.opt.shadafile = history_dir .. 'main.shada'
-vim.opt.undodir = history_dir .. 'undo'
-vim.opt.backupdir = history_dir .. 'backup'
-vim.opt.directory = history_dir .. 'swap'
-vim.opt.viewdir = history_dir .. 'view'
-
-vim.opt.shada = [[!,'100,<50,s10,h]]
-vim.opt.undofile = true
-vim.opt.backup = false
-vim.opt.writebackup = false
-vim.opt.swapfile = false
-vim.opt.viewoptions = {
-  'cursor',
-}
-vim.opt.sessionoptions = {
-  'buffers',
-  'curdir',
-  'folds',
-  'help',
-  'tabpages',
-  'winsize',
-}
-
-local view_group = vim.api.nvim_create_augroup('UserView', { clear = true })
-local function should_persist_view(bufnr)
-  if vim.bo[bufnr].buftype ~= '' then return false end
-  if vim.api.nvim_buf_get_name(bufnr) == '' then return false end
-
-  return true
-end
-
-vim.api.nvim_create_autocmd('BufWinLeave', {
-  group = view_group,
-  pattern = '*',
-  callback = function(args)
-    if should_persist_view(args.buf) then pcall(vim.cmd.mkview) end
-  end,
-})
-
-vim.api.nvim_create_autocmd('BufWinEnter', {
-  group = view_group,
-  pattern = '*',
-  callback = function(args)
-    if should_persist_view(args.buf) then pcall(vim.cmd.loadview) end
-  end,
-})
--- }}}
-
--- ColorScheme {{{
-vim.opt.background = 'light'
-local function remove_all_italics()
-  local highlights = vim.api.nvim_get_hl(0, {})
-
-  for group_name, settings in pairs(highlights) do
-    if settings.italic then
-      local new_settings = vim.tbl_extend('force', settings, { italic = false })
-      vim.api.nvim_set_hl(0, group_name, new_settings)
-    end
-  end
-end
-
--- Intentionally kept as a disabled alternative in case the no-bold preference comes back.
--- local function remove_all_bold()
---   local highlights = vim.api.nvim_get_hl(0, {})
---
---   for group_name, settings in pairs(highlights) do
---     if settings.bold then
---       local new_settings = vim.tbl_extend('force', settings, { bold = false })
---       vim.api.nvim_set_hl(0, group_name, new_settings)
---     end
---   end
--- end
-
-local theme_augroup = vim.api.nvim_create_augroup('ThemeCustomization', { clear = true })
-vim.api.nvim_create_autocmd('ColorScheme', {
-  group = theme_augroup,
-  pattern = '*',
-  callback = function()
-    remove_all_italics()
-    -- remove_all_bold()
-  end,
-  desc = 'Remove italics globally',
-})
-
-local loaded, load_error = pcall(vim.cmd.colorscheme, 'paper-custom')
-if not loaded then
-  vim.notify(
-    'Failed to load paper-custom; using Neovim default.\n' .. tostring(load_error),
-    vim.log.levels.WARN
-  )
-  vim.cmd.colorscheme 'default'
-end
--- }}}
-
--- Statusline {{{
-local my_config = rawget(_G, 'MyConfig')
-if type(my_config) ~= 'table' then my_config = {} end
-rawset(_G, 'MyConfig', my_config)
-rawset(my_config, 'custom_statusline', function()
-  local path = vim.wo.diff and '%<%-20.50F' or '%f'
-  return ' ' .. path .. ' %m%r %= %< %l/%L, %3c '
-end)
-vim.opt.statusline = '%!v:lua.MyConfig.custom_statusline()'
--- }}}
-
--- key-mapping {{{
-vim.keymap.set('i', 'jk', '<ESC>')
-vim.keymap.set({ 'n', 'v' }, ',', ':')
-vim.keymap.set('n', '<S-u>', '<C-r>')
-vim.keymap.set('n', 'Q', '<NOP>')
-
-vim.keymap.set('n', 'j', 'gj')
-vim.keymap.set('n', 'k', 'gk')
-vim.keymap.set('n', '0', 'g0')
-vim.keymap.set('n', '^', 'g^')
-vim.keymap.set('n', '$', 'g$')
-
-vim.keymap.set('v', '<', '<gv')
-vim.keymap.set('v', '>', '>gv')
-
-vim.keymap.set('n', 'n', 'nzz')
-vim.keymap.set('n', 'N', 'Nzz')
-vim.keymap.set('n', '*', '*zz')
-vim.keymap.set('n', '#', '#zz')
-
--- Intentionally keep this commented mapping for future rollback/reference.
--- vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', { silent = true })
-vim.keymap.set('n', '<leader>v', '<C-v>')
-vim.keymap.set('i', '{<CR>', '{<CR>}<Esc>O')
-vim.keymap.set('n', '<leader>bb', '<C-o>', { desc = 'Jump Back' })
-vim.keymap.set('n', '<leader>gg', '<C-i>', { desc = 'Jump Forward' })
-vim.keymap.set('n', '<leader>ss', '<C-^>', { desc = 'Switch Alternate Buffer' })
-
-local blackhole_keys = { 'c', 'C', 's', 'S', 'x', 'X' }
-for _, key in ipairs(blackhole_keys) do
-  vim.keymap.set({ 'n', 'v' }, key, '"_' .. key)
-end
-
--- Visual P replaces the selection without overwriting the unnamed register.
--- Map p to that behavior so repeated paste keeps the copied text stable.
-vim.keymap.set('x', 'p', 'P')
-
-vim.keymap.set('n', '[b', '<cmd>bprevious<CR>', { silent = true })
-vim.keymap.set('n', ']b', '<cmd>bnext<CR>', { silent = true })
-vim.keymap.set('n', '[B', '<cmd>bfirst<CR>', { silent = true })
-vim.keymap.set('n', ']B', '<cmd>blast<CR>', { silent = true })
-vim.keymap.set('n', '[t', '<cmd>tabprevious<CR>', { silent = true })
-vim.keymap.set('n', ']t', '<cmd>tabnext<CR>', { silent = true })
-
-vim.keymap.set('n', '<leader>w', '<C-w>')
-vim.keymap.set('n', '<leader>1', '<C-w>h')
-vim.keymap.set('n', '<leader>2', '<C-w>j')
-vim.keymap.set('n', '<leader>3', '<C-w>k')
-vim.keymap.set('n', '<leader>4', '<C-w>l')
-vim.keymap.set('n', '<leader>5', '<cmd>vertical resize -10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>6', '<cmd>resize -10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>7', '<cmd>resize +10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>8', '<cmd>vertical resize +10<CR>', { silent = true })
-
-vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { silent = true })
-vim.keymap.set('n', '<leader>a', 'ggVG')
 -- }}}
 
 -- Etc. {{{
@@ -1049,7 +628,6 @@ local copy_mappings = {
 
 for key, opts in pairs(copy_mappings) do
   vim.keymap.set({ 'n', 'x' }, key, create_copy_command(opts.type), {
-    noremap = true,
     silent = true,
     desc = opts.desc,
   })
@@ -1058,8 +636,7 @@ end
 
 -- Problem-solving runner {{{
 local problem_input_default_enabled = true
--- Add languages as templates. {source} and {executable} are shell-escaped
--- when commands are built.
+-- {source} and {executable} are shell-escaped when commands are built.
 local problem_languages = {
   c = {
     name = 'C',
@@ -1078,29 +655,10 @@ local problem_languages = {
     },
     run = { '{executable}' },
   },
-  rust = {
-    name = 'Rust',
-    extensions = { 'rs' },
-    compile = {
-      'rustc',
-      '--edition=2024',
-      '-g',
-      '{source}',
-      '-o',
-      '{executable}',
-    },
-    run = { '{executable}' },
-  },
   python = {
     name = 'Python',
     extensions = { 'py' },
     run = { 'python3', '{source}' },
-  },
-  java = {
-    name = 'Java',
-    extensions = { 'java' },
-    -- Source-file mode leaves no class artifacts beside the source file.
-    run = { 'java', '{source}' },
   },
 }
 
@@ -1297,7 +855,6 @@ configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
 -- Navigation model
 --   Unknown nearby structure    Oil
 --   Current working set         alternate buffer and buffer list
---   Code meaning                LSP definition, reference, and hover actions
 --   Exact project text          <leader>sg quickfix search
 --
 -- Editing and navigation
@@ -1329,43 +886,13 @@ configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
 --   <leader>5..8          n       Shrink width / height, grow height / width
 --   <leader>qq            n       Quit all windows
 --
--- Completion
---   <leader>cp            n       Toggle automatic completion popup
---   <leader><Space>       i       Request LSP completion explicitly
+-- Keyword completion
+--   <leader>cp            n       Toggle automatic current-buffer completion
+--   <leader><Space>       i       Complete words from the current buffer
 --   <Up> / <Down>         i       Select the previous / next completion item
---   <Tab>                  i       Confirm completion or move to the next snippet stop
---   <S-Tab>                i       Select the previous item or move to the previous snippet stop
---                                <Tab> indents leading whitespace instead
+--   <Tab>                  i       Confirm the selected or first completion item
+--   <S-Tab>                i       Select the previous completion item
 --   <CR>                  i       Confirm the selected item or insert a newline
-
--- Configured navigation
---   gd / gD                n       Go to definition / declaration
---
--- Neovim LSP defaults
---   gra                    n, x    Code action
---   gri / grt              n       Go to implementation / type definition
---   grn / grr              n       Rename symbol / list references
---   grx                    n       Run the code lens at the cursor
---   gO                     n       List symbols in the current file
---   K                      n       Show symbol information
---   <C-s>                  i       Show signature help
---   an / in                x       Expand / shrink LSP selection without Treesitter
---   gx                     n       Open a document link at the cursor
---   gq                     n, x    Format through the attached language server
---
--- Additional LSP workflows
---   grs / grb              n       List supertypes / subtypes
---   <leader>ic             i       Accept inline completion when available
---   <leader>ws             n       Search workspace symbols
---   <leader>wa / wr / wl   n       Add / remove / list workspace folders
---   <leader>ci / <leader>co n     List incoming / outgoing calls
---   <leader>d              n       Show diagnostics at the cursor
---   [d / ]d                n       Previous / next diagnostic with popup
---   [D / ]D                n       First / last diagnostic with popup
---   <leader>qd             n       List known diagnostics in quickfix
---   <leader>qD             n       List workspace diagnostics
---   <leader>th / tl / ts   n       Toggle inlay hints / code lenses / semantic tokens
---   Inlay hints and code lenses start disabled.
 
 -- Project search
 --   <leader>sg             n       Enter project text to search with ripgrep
@@ -1388,8 +915,8 @@ configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
 -- Single-file problem solving
 --   The runner saves the source first and uses <source-name>.in beside it as
 --   standard input when present. It otherwise runs without redirected input.
---   Compiled sources overwrite <source-name>.out beside the source. C and Rust
---   use debug, unoptimized builds for lldb; Rust uses edition 2024.
+--   Compiled sources overwrite <source-name>.out beside the source. C uses
+--   a -g -O0 build for lldb.
 --   Results replace the prior problem-runner terminal in the current tab.
 --   <leader>er             n       Compile/run the current source in a terminal split
 --   <leader>ei             n       Open <source-name>.in in a lower split
@@ -1405,7 +932,5 @@ configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
 --   :TrimWhitespace               Remove trailing whitespace from the buffer
 --   :TrimCarriageReturn           Remove carriage-return characters from the buffer
 --   :lua vim.pack.update()        Update managed plugins
---   :checkhealth                  Check Neovim, Oil, and enabled LSP clients
---   :mksession! .session.vim      Save an explicit project session
---   nvim -S .session.vim          Restore an explicit project session from the shell
+--   :checkhealth                  Check Neovim and Oil
 -- }}}
