@@ -1,0 +1,7 @@
+[mgr]
+show_hidden = true
+
+[opener]
+open = [
+  { run = '"$HOME/.local/bin/open-path" %s1', desc = "Open", orphan = true, for = "unix" },
+]

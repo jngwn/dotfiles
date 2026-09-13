@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Image Viewer (imv directory)
+Comment=View an image with the other images in its directory
+TryExec=imv-dir
+Exec=imv-dir %f
+Icon=multimedia-photo-viewer
+Terminal=false
+NoDisplay=true
+Categories=Graphics;Viewer;
+MimeType=image/bmp;image/avif;image/gif;image/heic;image/heif;image/jpeg;image/png;image/svg+xml;image/tiff;image/webp;
+StartupNotify=false

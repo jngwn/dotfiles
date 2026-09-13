@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+
+is_remote_shell() {
+  [[ -n "${SSH_CONNECTION:-}" || -n "${SSH_TTY:-}" ]]
+}
+
+is_wsl() {
+  local os_release=""
+  [[ -r /proc/sys/kernel/osrelease ]] || return 1
+  IFS= read -r os_release </proc/sys/kernel/osrelease || return 1
+
+  case "${os_release}" in
+    *[Mm]icrosoft* | *[Ww][Ss][Ll]*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+open_with_explorer() {
+  local target
+  local host_target
+  for target in "${@}"; do
+    host_target="${target}"
+    if [[ -e "${target}" ]] && command -v wslpath >/dev/null 2>&1; then
+      if ! host_target="$(command wslpath -w "${target}")"; then
+        echo "ERROR: Could not convert the WSL path: ${target}" >&2
+        return 1
+      fi
+    fi
+    if ! command explorer.exe "${host_target}" </dev/null >/dev/null 2>&1; then
+      echo "ERROR: Windows Explorer could not open: ${target}" >&2
+      return 1
+    fi
+  done
+}
+
+open_with_wslview() {
+  local target
+  for target in "${@}"; do
+    if ! command wslview "${target}" </dev/null >/dev/null 2>&1; then
+      echo "ERROR: wslview could not open: ${target}" >&2
+      return 1
+    fi
+  done
+}
+
+open_with_xdg() {
+  local target
+  for target in "${@}"; do
+    (command xdg-open "${target}" </dev/null >/dev/null 2>&1 &)
+  done
+}
+
+main() {
+  if (($# == 0)); then
+    echo "Usage: open-path <path-or-URL> [...]" >&2
+    return 2
+  fi
+
+  if is_remote_shell; then
+    echo "ERROR: File opener is disabled in remote shells." >&2
+    return 1
+  fi
+
+  if is_wsl; then
+    if command -v wslview >/dev/null 2>&1; then
+      open_with_wslview "${@}"
+      return
+    fi
+    if command -v explorer.exe >/dev/null 2>&1; then
+      open_with_explorer "${@}"
+      return
+    fi
+
+    echo "ERROR: No Windows host file opener is available in WSL." >&2
+    return 1
+  fi
+
+  case "$(uname -s 2>/dev/null)" in
+    Darwin)
+      if command -v open >/dev/null 2>&1; then
+        command open "${@}"
+        return
+      fi
+      ;;
+    Linux)
+      if command -v gio >/dev/null 2>&1; then
+        if ! command gio open "${@}" </dev/null >/dev/null 2>&1; then
+          echo "ERROR: GIO could not open the requested target." >&2
+          return 1
+        fi
+        return
+      fi
+      if command -v xdg-open >/dev/null 2>&1; then
+        open_with_xdg "${@}"
+        return
+      fi
+      ;;
+  esac
+
+  echo "ERROR: No supported file opener is available." >&2
+  return 1
+}
+
+main "${@}"

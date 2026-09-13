@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Keyboard LED names are hardware-specific. Discover the kernel's standard
+# kbd_backlight class instead of putting a laptop model or LED name in Sway.
+case "${1:-}" in
+  up) adjustment='10%+' ;;
+  down) adjustment='10%-' ;;
+  *) exit 2 ;;
+esac
+
+command -v brightnessctl >/dev/null 2>&1 || exit 0
+
+shopt -s nullglob
+keyboard_backlights=(/sys/class/leds/*::kbd_backlight)
+shopt -u nullglob
+
+# Some laptops expose more than one keyboard-zone LED. Apply the same explicit
+# key action to each matching device; machines without the class stay inert.
+for keyboard_backlight in "${keyboard_backlights[@]}"; do
+  brightnessctl -q --device "${keyboard_backlight##*/}" set "${adjustment}" \
+    >/dev/null 2>&1 || true
+done
