@@ -1,6 +1,7 @@
 local packages = {
   { src = 'https://github.com/stevearc/oil.nvim' },
   { src = 'https://github.com/lewis6991/gitsigns.nvim' },
+  { src = 'https://github.com/nvim-mini/mini.indentscope' },
   {
     src = 'https://github.com/AndrewRadev/tagalong.vim',
     data = { preload = 'tagalong.lua' },

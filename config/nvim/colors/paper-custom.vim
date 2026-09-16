@@ -234,6 +234,10 @@ Hi DiagnosticUnderlineWarn NONE NONE undercurl yellow
 Hi LspReferenceText NONE lyellow NONE
 Hi LspInlayHint grey NONE NONE
 
+" mini.indentscope
+Hi MiniIndentscopeSymbol blue NONE bold
+hi! link MiniIndentscopeSymbolOff MiniIndentscopeSymbol
+
 " netrw
 hi! link netrwClassify Identifier
 
