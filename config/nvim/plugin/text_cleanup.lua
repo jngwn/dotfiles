@@ -1,4 +1,3 @@
--- Text cleanup {{{
 local function trim_trailing_whitespace()
   local save_view = vim.fn.winsaveview()
   vim.cmd [[silent! keeppatterns %s/\s\+$//e]]
@@ -23,4 +22,3 @@ vim.keymap.set('n', '<leader>ct', function()
   trim_carriage_return()
   trim_trailing_whitespace()
 end, { desc = 'Clean text whitespace' })
--- }}}

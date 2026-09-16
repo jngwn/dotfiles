@@ -1,4 +1,3 @@
--- oil.nvim {{{
 local ok, err = pcall(function()
   local oil = require 'oil'
   oil.setup {
@@ -41,4 +40,3 @@ end)
 if not ok then
   vim.notify_once(('Failed to configure Oil:\n%s'):format(err), vim.log.levels.WARN)
 end
--- }}}

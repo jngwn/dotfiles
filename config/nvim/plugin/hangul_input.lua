@@ -1,4 +1,3 @@
--- Hangul input source {{{
 local input_source_reset_in_flight = false
 local hangul_input_group = vim.api.nvim_create_augroup('hangul_input', { clear = true })
 
@@ -37,4 +36,3 @@ vim.api.nvim_create_autocmd('InsertLeave', {
   callback = reset_input_source,
   desc = 'Reset Hangul input source after insert mode editing',
 })
--- }}}

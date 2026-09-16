@@ -1,4 +1,3 @@
--- Copy File References {{{
 local function get_file_reference_data()
   -- %:. is cwd-relative when possible and falls back to absolute when the file is outside cwd.
   local rel_path = vim.fn.expand '%:.'
@@ -70,4 +69,3 @@ for key, opts in pairs(copy_mappings) do
     desc = opts.desc,
   })
 end
--- }}}

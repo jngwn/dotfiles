@@ -13,6 +13,8 @@
 --   gra                Code action (Normal and Visual)
 --   grn                Rename symbol
 --   <leader>ls         Signature help
+--   :LspCopyDiagnostics
+--                      Copy diagnostics on the current line
 --
 -- Diagnostics
 --   [d / ]d            Previous / next diagnostic
@@ -29,13 +31,19 @@
 -- Feature controls
 --   <leader>cp                 Toggle completion popup
 --   :LspDiagnostics [state]    Diagnostics
---   :LspFormatOnSave [state]   Format on save
+--   :LspFormatOnSave[!] [state]
+--                              Format on save (! = current buffer)
+--   :LspInlayHints [state]     Inlay hints
 --   `state`: on, off, or toggle
 --
 -- Server controls
 --   :lsp enable [server_name]
 --   :lsp disable [server_name]
 --   :lsp restart [server_name]
+--   Lua: lua_ls                       Rust: rust_analyzer
+--   Python: ty, ruff                  C/C++: clangd
+--   JavaScript/TypeScript: ts_native, biome
+--   Web: html, cssls, jsonls, tailwindcss, emmet_language_server
 -- }}}
 
 -- Shared LSP behavior {{{
@@ -43,12 +51,14 @@ local features = {
   completion = true,
   diagnostics = true,
   format_on_save = true,
+  inlay_hints = false,
 }
 
 vim.opt.completeopt = { 'menuone', 'noselect', 'popup' }
 vim.opt.pumborder = 'single'
 vim.opt.pumblend = 0
 vim.opt.winborder = 'single'
+vim.opt.signcolumn = 'yes'
 
 vim.diagnostic.config {
   severity_sort = true,
@@ -122,7 +132,45 @@ create_feature_command(
   'diagnostics',
   function(enabled) vim.diagnostic.enable(enabled) end
 )
-create_feature_command('LspFormatOnSave', 'format_on_save', 'format on save', function() end)
+create_feature_command(
+  'LspInlayHints',
+  'inlay_hints',
+  'inlay hints',
+  function(enabled) vim.lsp.inlay_hint.enable(enabled) end
+)
+
+local function format_on_save_enabled(bufnr)
+  local enabled = vim.b[bufnr].lsp_format_on_save
+  if enabled == nil then return features.format_on_save end
+  return enabled
+end
+
+vim.api.nvim_create_user_command('LspFormatOnSave', function(command)
+  local requested = command.args
+  if requested ~= '' and requested ~= 'on' and requested ~= 'off' and requested ~= 'toggle' then
+    vim.notify('LspFormatOnSave expects on, off, or toggle.', vim.log.levels.ERROR)
+    return
+  end
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local current = command.bang and format_on_save_enabled(bufnr) or features.format_on_save
+  local enabled = requested == 'on' or ((requested == '' or requested == 'toggle') and not current)
+  local scope
+  if command.bang then
+    vim.b[bufnr].lsp_format_on_save = enabled
+    scope = ' for the current buffer'
+  else
+    features.format_on_save = enabled
+    scope = ''
+  end
+  vim.notify(('LSP format on save %s%s.'):format(enabled and 'enabled' or 'disabled', scope))
+end, {
+  bang = true,
+  nargs = '?',
+  complete = function() return { 'on', 'off', 'toggle' } end,
+  desc = 'Enable, disable, or toggle LSP format on save globally or for the current buffer',
+})
+
 vim.keymap.set('n', '<leader>cp', function()
   local enabled = not features.completion
   set_completion(enabled)
@@ -154,6 +202,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(event)
     local client = assert(vim.lsp.get_client_by_id(event.data.client_id))
     set_lsp_keymaps(event.buf)
+    if client:supports_method('textDocument/inlayHint', event.buf) then
+      vim.lsp.inlay_hint.enable(features.inlay_hints, { bufnr = event.buf })
+    end
     if not client:supports_method 'textDocument/completion' then return end
 
     vim.lsp.completion.enable(features.completion, client.id, event.buf, { autotrigger = false })
@@ -195,6 +246,27 @@ vim.keymap.set('n', '<leader>d', function()
   }
   if winid and vim.api.nvim_win_is_valid(winid) then vim.api.nvim_set_current_win(winid) end
 end, { desc = 'Open and focus diagnostic popup' })
+
+vim.api.nvim_create_user_command('LspCopyDiagnostics', function()
+  local line = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local diagnostics = vim.diagnostic.get(0, { lnum = line })
+  if #diagnostics == 0 then
+    vim.notify('No diagnostics on the current line.', vim.log.levels.INFO)
+    return
+  end
+
+  table.sort(diagnostics, function(left, right)
+    if left.col == right.col then
+      return (left.severity or math.huge) < (right.severity or math.huge)
+    end
+    return left.col < right.col
+  end)
+  local messages = vim.tbl_map(function(diagnostic) return diagnostic.message end, diagnostics)
+  vim.fn.setreg('+', table.concat(messages, '\n'))
+  vim.notify('Copied diagnostics on the current line.', vim.log.levels.INFO)
+end, {
+  desc = 'Copy diagnostics on the current line to the system clipboard',
+})
 -- }}}
 
 -- Format on save {{{
@@ -205,13 +277,19 @@ local lsp_formatters = {
   python = 'ruff',
   rust = 'rust_analyzer',
 }
+local biome_filetypes = {
+  css = true,
+  html = true,
+  javascript = true,
+  javascriptreact = true,
+  json = true,
+  jsonc = true,
+  typescript = true,
+  typescriptreact = true,
+}
+local biome_config_files = { 'biome.json', 'biome.jsonc' }
 
-local function format_lua(bufnr)
-  if vim.fn.executable 'stylua' ~= 1 then
-    vim.notify_once('StyLua is unavailable; Lua format on save is disabled.', vim.log.levels.WARN)
-    return
-  end
-
+local function replace_with_formatted_output(bufnr, tool, command)
   local path = vim.api.nvim_buf_get_name(bufnr)
   if path == '' then return end
 
@@ -219,19 +297,14 @@ local function format_lua(bufnr)
   local input = table.concat(lines, '\n')
   if vim.bo[bufnr].eol then input = input .. '\n' end
 
-  local result = vim
-    .system({ 'stylua', '--stdin-filepath', path, '-' }, {
-      stdin = input,
-      text = true,
-    })
-    :wait(format_timeout_ms)
+  local result = vim.system(command, { stdin = input, text = true }):wait(format_timeout_ms)
   if result.code == 124 then
-    vim.notify(('StyLua timed out after %d ms.'):format(format_timeout_ms), vim.log.levels.ERROR)
+    vim.notify(('%s timed out after %d ms.'):format(tool, format_timeout_ms), vim.log.levels.ERROR)
     return
   end
   if result.code ~= 0 then
     local detail = vim.trim(result.stderr or '')
-    vim.notify('StyLua failed' .. (detail == '' and '.' or ':\n' .. detail), vim.log.levels.ERROR)
+    vim.notify(tool .. ' failed' .. (detail == '' and '.' or ':\n' .. detail), vim.log.levels.ERROR)
     return
   end
 
@@ -244,14 +317,61 @@ local function format_lua(bufnr)
   vim.fn.winrestview(view)
 end
 
+local function format_lua(bufnr)
+  if vim.fn.executable 'stylua' ~= 1 then
+    vim.notify_once('StyLua is unavailable; Lua format on save is disabled.', vim.log.levels.WARN)
+    return
+  end
+
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  if path == '' then return end
+  replace_with_formatted_output(bufnr, 'StyLua', { 'stylua', '--stdin-filepath', path, '-' })
+end
+
+local function format_biome(bufnr)
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  if path == '' then return end
+
+  if vim.fn.executable 'biome' ~= 1 then
+    vim.notify_once(
+      'Biome is unavailable; frontend format on save is disabled.',
+      vim.log.levels.WARN
+    )
+    return
+  end
+
+  local command = { 'biome', 'format', '--stdin-file-path=' .. path }
+  local project_config = vim.fs.find(biome_config_files, {
+    path = vim.fs.dirname(path),
+    upward = true,
+    type = 'file',
+    limit = 1,
+  })[1]
+  if not project_config then
+    local filetype = vim.bo[bufnr].filetype
+    if filetype == 'html' then
+      table.insert(command, '--html-formatter-enabled=true')
+    elseif filetype == 'css' then
+      table.insert(command, '--css-formatter-enabled=true')
+      table.insert(command, '--css-parse-tailwind-directives=true')
+    end
+  end
+
+  replace_with_formatted_output(bufnr, 'Biome', command)
+end
+
 vim.api.nvim_create_autocmd('BufWritePre', {
   group = lsp_group,
   callback = function(event)
-    if not features.format_on_save then return end
+    if not format_on_save_enabled(event.buf) then return end
 
     local filetype = vim.bo[event.buf].filetype
     if filetype == 'lua' then
       format_lua(event.buf)
+      return
+    end
+    if biome_filetypes[filetype] then
+      format_biome(event.buf)
       return
     end
 
@@ -276,4 +396,17 @@ vim.api.nvim_create_autocmd('BufWritePre', {
 })
 -- }}}
 
-vim.lsp.enable { 'lua_ls', 'rust_analyzer', 'ty', 'ruff', 'clangd' }
+vim.lsp.enable {
+  'lua_ls',
+  'rust_analyzer',
+  'ty',
+  'ruff',
+  'clangd',
+  'ts_native',
+  'biome',
+  'html',
+  'cssls',
+  'jsonls',
+  'tailwindcss',
+  'emmet_language_server',
+}

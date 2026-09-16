@@ -1,4 +1,3 @@
--- Problem-solving runner {{{
 local problem_input_default_enabled = true
 -- Placeholder values are shell-escaped when commands are built.
 local problem_languages = {
@@ -254,4 +253,3 @@ vim.api.nvim_create_autocmd({ 'BufEnter', 'BufFilePost' }, {
   desc = 'Enable problem-runner keymaps only for supported source files',
 })
 configure_problem_runner_keymaps(vim.api.nvim_get_current_buf())
--- }}}
