@@ -1,0 +1,10 @@
+[settings]
+use_versions_host_track = false
+
+[tools]
+node = "lts"
+java = "temurin-21"
+uv = "latest"
+"aqua:biomejs/biome" = "latest"
+"github:yt-dlp/yt-dlp-nightly-builds" = { version = "latest", bin = "yt-dlp", prerelease = true }
+"aqua:openai/codex" = "latest"

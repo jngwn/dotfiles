@@ -1,0 +1,61 @@
+font-family = CommitMono Nerd Font Mono
+font-family-italic = CommitMono Nerd Font Mono
+font-family-bold-italic = CommitMono Nerd Font Mono
+font-size = 14
+font-style-italic = Regular
+font-style-bold-italic = Bold
+font-synthetic-style = no-italic,no-bold-italic
+window-theme = light
+background = #f2eede
+foreground = #000000
+background-opacity = 1
+background-blur = false
+minimum-contrast = 1
+bold-color =
+cursor-color = #000000
+cursor-text = #f2eede
+cursor-style = block
+selection-foreground = #000000
+selection-background = #b7c9dc
+search-foreground = #000000
+search-background = #ffd400
+search-selected-foreground = #ffffff
+search-selected-background = #9f3a30
+palette = 0=#000000
+palette = 1=#cc3e28
+palette = 2=#216609
+palette = 3=#b58900
+palette = 4=#1e6fcc
+palette = 5=#5c21a5
+palette = 6=#158c86
+palette = 7=#aaaaaa
+palette = 8=#555555
+palette = 9=#cc3e28
+palette = 10=#216609
+palette = 11=#b58900
+palette = 12=#1e6fcc
+palette = 13=#5c21a5
+palette = 14=#158c86
+palette = 15=#aaaaaa
+
+gtk-titlebar = false
+gtk-single-instance = false
+quit-after-last-window-closed = true
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+title = Ghostty
+
+term = xterm-256color
+shell-integration-features = no-cursor,no-title,no-ssh-env,no-ssh-terminfo
+clipboard-read = deny
+clipboard-write = allow
+bell-features = no-system,no-audio,no-attention,no-title,no-border
+desktop-notifications = false
+notify-on-command-finish = never
+
+scrollback-limit = 10485760
+scrollbar = never
+
+keybind = ctrl+shift+left=unbind
+keybind = ctrl+shift+right=unbind
