@@ -198,6 +198,7 @@ end, { desc = 'Open and focus diagnostic popup' })
 -- }}}
 
 -- Format on save {{{
+local format_timeout_ms = 2000
 local lsp_formatters = {
   c = 'clangd',
   cpp = 'clangd',
@@ -223,7 +224,11 @@ local function format_lua(bufnr)
       stdin = input,
       text = true,
     })
-    :wait()
+    :wait(format_timeout_ms)
+  if result.code == 124 then
+    vim.notify(('StyLua timed out after %d ms.'):format(format_timeout_ms), vim.log.levels.ERROR)
+    return
+  end
   if result.code ~= 0 then
     local detail = vim.trim(result.stderr or '')
     vim.notify('StyLua failed' .. (detail == '' and '.' or ':\n' .. detail), vim.log.levels.ERROR)
@@ -264,7 +269,7 @@ vim.api.nvim_create_autocmd('BufWritePre', {
       async = false,
       bufnr = event.buf,
       name = client_name,
-      timeout_ms = 2000,
+      timeout_ms = format_timeout_ms,
     }
   end,
   desc = 'Format supported source files before writing',

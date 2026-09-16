@@ -227,20 +227,23 @@ local function configure_problem_runner_keymaps(bufnr)
   local extension = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ':e'):lower()
   local supported = problem_language_by_extension[extension] ~= nil
 
-  for _, mapping in ipairs(problem_runner_keymaps) do
-    if supported then
-      vim.keymap.set('n', mapping.lhs, mapping.callback, {
-        buffer = bufnr,
-        desc = mapping.desc,
-      })
-    else
-      vim.keymap.set('n', mapping.lhs, '<Nop>', {
-        buffer = bufnr,
-        silent = true,
-        desc = 'Problem runner unavailable for this file type',
-      })
+  if not supported then
+    if vim.b[bufnr].problem_runner_keymaps_enabled then
+      for _, mapping in ipairs(problem_runner_keymaps) do
+        pcall(vim.keymap.del, 'n', mapping.lhs, { buffer = bufnr })
+      end
+      vim.b[bufnr].problem_runner_keymaps_enabled = nil
     end
+    return
   end
+
+  for _, mapping in ipairs(problem_runner_keymaps) do
+    vim.keymap.set('n', mapping.lhs, mapping.callback, {
+      buffer = bufnr,
+      desc = mapping.desc,
+    })
+  end
+  vim.b[bufnr].problem_runner_keymaps_enabled = true
 end
 
 local problem_runner_keymap_group =

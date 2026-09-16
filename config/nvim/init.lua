@@ -1,5 +1,7 @@
 vim.g.mapleader = '\\'
 
+local init_group = vim.api.nvim_create_augroup('core_init', { clear = true })
+
 -- Clipboard {{{
 local use_terminal_clipboard = vim.fn.has 'wsl' == 1
   or vim.env.SSH_TTY ~= nil
@@ -8,11 +10,13 @@ if use_terminal_clipboard then
   -- OSC 52 reads are not portable, so keep ordinary paste editor-local.
   local copy_to_terminal = require('vim.ui.clipboard.osc52').copy '+'
   vim.api.nvim_create_autocmd('TextYankPost', {
+    group = init_group,
     callback = function()
       if vim.v.event.operator == 'y' and vim.v.event.regname == '' then
         copy_to_terminal(vim.v.event.regcontents)
       end
     end,
+    desc = 'Copy unnamed yanks through OSC 52',
   })
 else
   vim.opt.clipboard = 'unnamedplus'
@@ -63,7 +67,9 @@ vim.opt.fileencodings = 'utf-8,euckr,cp949,latin1'
 vim.opt.isfname:remove '='
 vim.opt.modeline = false
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
+  group = init_group,
   command = 'checktime', -- Detect files changed by external tools.
+  desc = 'Detect files changed by external tools',
 })
 
 vim.opt.wildignorecase = true
@@ -80,53 +86,67 @@ if not pcall(vim.cmd.colorscheme, 'paper-custom') then vim.cmd.colorscheme 'defa
 -- }}}
 
 -- key-mapping {{{
-vim.keymap.set('i', 'jk', '<ESC>')
-vim.keymap.set({ 'n', 'v' }, ',', ':')
-vim.keymap.set('n', '<S-u>', '<C-r>')
-vim.keymap.set('n', 'Q', '<NOP>')
-vim.keymap.set('n', 'gQ', '<NOP>')
+vim.keymap.set('i', 'jk', '<ESC>', { desc = 'Exit insert mode' })
+vim.keymap.set({ 'n', 'v' }, ',', ':', { desc = 'Enter command-line mode' })
+vim.keymap.set('n', '<S-u>', '<C-r>', { desc = 'Redo' })
+vim.keymap.set('n', 'Q', '<NOP>', { desc = 'Disable Q' })
+vim.keymap.set('n', 'gQ', '<NOP>', { desc = 'Disable Ex mode' })
 
-vim.keymap.set('n', 'j', 'gj')
-vim.keymap.set('n', 'k', 'gk')
-vim.keymap.set('n', '0', 'g0')
-vim.keymap.set('n', '^', 'g^')
-vim.keymap.set('n', '$', 'g$')
+vim.keymap.set('n', 'j', 'gj', { desc = 'Move down by display line' })
+vim.keymap.set('n', 'k', 'gk', { desc = 'Move up by display line' })
+vim.keymap.set('n', '0', 'g0', { desc = 'Move to display line start' })
+vim.keymap.set('n', '^', 'g^', { desc = 'Move to first display line character' })
+vim.keymap.set('n', '$', 'g$', { desc = 'Move to display line end' })
 
-vim.keymap.set('v', '<', '<gv')
-vim.keymap.set('v', '>', '>gv')
+vim.keymap.set('v', '<', '<gv', { desc = 'Indent left and keep selection' })
+vim.keymap.set('v', '>', '>gv', { desc = 'Indent right and keep selection' })
 
-vim.keymap.set('n', '<leader>v', '<C-v>')
-vim.keymap.set('i', '{<CR>', '{<CR>}<Esc>O')
+vim.keymap.set('n', '<leader>v', '<C-v>', { desc = 'Enter blockwise visual mode' })
+vim.keymap.set('i', '{<CR>', '{<CR>}<Esc>O', { desc = 'Expand braces' })
 vim.keymap.set('n', '<leader>bb', '<C-o>', { desc = 'Jump Back' })
 vim.keymap.set('n', '<leader>gg', '<C-i>', { desc = 'Jump Forward' })
 vim.keymap.set('n', '<leader>ss', '<C-^>', { desc = 'Switch Alternate Buffer' })
 
 local blackhole_keys = { 'c', 'C', 's', 'S', 'x', 'X' }
 for _, key in ipairs(blackhole_keys) do
-  vim.keymap.set({ 'n', 'v' }, key, '"_' .. key)
+  vim.keymap.set({ 'n', 'v' }, key, '"_' .. key, {
+    desc = 'Use black-hole register for ' .. key,
+  })
 end
 
 -- Visual P replaces the selection without overwriting the unnamed register.
 -- Map p to that behavior so repeated paste keeps the copied text stable.
-vim.keymap.set('x', 'p', 'P')
+vim.keymap.set('x', 'p', 'P', { desc = 'Paste without replacing register' })
 
-vim.keymap.set('n', '[b', '<cmd>bprevious<CR>', { silent = true })
-vim.keymap.set('n', ']b', '<cmd>bnext<CR>', { silent = true })
-vim.keymap.set('n', '[t', '<cmd>tabprevious<CR>', { silent = true })
-vim.keymap.set('n', ']t', '<cmd>tabnext<CR>', { silent = true })
+vim.keymap.set('n', '[b', '<cmd>bprevious<CR>', { silent = true, desc = 'Previous buffer' })
+vim.keymap.set('n', ']b', '<cmd>bnext<CR>', { silent = true, desc = 'Next buffer' })
+vim.keymap.set('n', '[t', '<cmd>tabprevious<CR>', { silent = true, desc = 'Previous tab' })
+vim.keymap.set('n', ']t', '<cmd>tabnext<CR>', { silent = true, desc = 'Next tab' })
 
-vim.keymap.set('n', '<leader>w', '<C-w>')
-vim.keymap.set('n', '<leader>1', '<C-w>h')
-vim.keymap.set('n', '<leader>2', '<C-w>j')
-vim.keymap.set('n', '<leader>3', '<C-w>k')
-vim.keymap.set('n', '<leader>4', '<C-w>l')
-vim.keymap.set('n', '<leader>5', '<cmd>vertical resize -10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>6', '<cmd>resize -10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>7', '<cmd>resize +10<CR>', { silent = true })
-vim.keymap.set('n', '<leader>8', '<cmd>vertical resize +10<CR>', { silent = true })
+vim.keymap.set('n', '<leader>w', '<C-w>', { desc = 'Window command prefix' })
+vim.keymap.set('n', '<leader>1', '<C-w>h', { desc = 'Focus left window' })
+vim.keymap.set('n', '<leader>2', '<C-w>j', { desc = 'Focus lower window' })
+vim.keymap.set('n', '<leader>3', '<C-w>k', { desc = 'Focus upper window' })
+vim.keymap.set('n', '<leader>4', '<C-w>l', { desc = 'Focus right window' })
+vim.keymap.set('n', '<leader>5', '<cmd>vertical resize -10<CR>', {
+  silent = true,
+  desc = 'Narrow window',
+})
+vim.keymap.set('n', '<leader>6', '<cmd>resize -10<CR>', {
+  silent = true,
+  desc = 'Shorten window',
+})
+vim.keymap.set('n', '<leader>7', '<cmd>resize +10<CR>', {
+  silent = true,
+  desc = 'Heighten window',
+})
+vim.keymap.set('n', '<leader>8', '<cmd>vertical resize +10<CR>', {
+  silent = true,
+  desc = 'Widen window',
+})
 
-vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { silent = true })
-vim.keymap.set('n', '<leader>a', 'ggVG')
+vim.keymap.set('n', '<leader>qq', '<cmd>qa<CR>', { silent = true, desc = 'Quit all' })
+vim.keymap.set('n', '<leader>a', 'ggVG', { desc = 'Select entire buffer' })
 vim.keymap.set('n', '<Esc>', function() vim.cmd.nohlsearch() end, {
   silent = true,
   desc = 'Clear search highlight',
