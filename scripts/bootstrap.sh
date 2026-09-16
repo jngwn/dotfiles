@@ -444,7 +444,7 @@ install_development_packages() { # {{{
 
   _install_required_packages \
     mise python \
-    clang lldb \
+    clang lldb lua-language-server \
     shellcheck shfmt stylua taplo-cli \
     pre-commit || failed=true
 

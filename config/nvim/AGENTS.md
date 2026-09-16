@@ -1,7 +1,9 @@
 # Neovim Policy
 
-- `config/nvim/init.lua` is the sole Neovim runtime configuration. Preserve its
-  `{{{ / }}}` folds and intentionally disabled rollback options.
+- `config/nvim/init.lua` owns general editor behavior, `config/nvim/plugin/lsp.lua`
+  owns shared LSP behavior, and `config/nvim/lsp/*.lua` owns server-specific
+  configuration. Preserve the `{{{ / }}}` folds in maintained runtime files and
+  intentionally disabled rollback options.
 - Read `NVIM-001` before changing the editor's scope, configuration structure, or
   platform-specific behavior, and `STATE-001` before changing persistence.
   Clipboard provider or OSC 52 changes also require `CLIPBOARD-001` and

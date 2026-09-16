@@ -448,20 +448,23 @@ Neovim은 일반 file history를 최소화하되 ShaDa와 undo는 명시적으�
 
 **Name:** Neovim 범위와 구성 구조
 
-**Locators:** `config/nvim/init.lua`, `config/nvim/AGENTS.md`
+**Locators:** `config/nvim/`, `config/nvim/AGENTS.md`
 
-**Why:** Neovim을 빠른 local 편집 도구로 유지하고 설정 지점을 하나로 제한하면 기능의
-범위와 책임을 구현에서 바로 확인할 수 있으며 작은 변경이 여러 module로 확산되지 않는다.
+**Why:** 일반 편집 동작과 language intelligence의 설정 지점을 분리하면 내장 LSP를
+유지하면서 기존 편집 구성을 독립적으로 읽고 변경할 수 있다.
 
-**Boundary:** `config/nvim/init.lua`가 Neovim runtime 설정 전체를 소유한다. 기존 fold와
-의도적으로 비활성화한 rollback option을 보존하고, plugin은 내장 기능으로 대체할 수 없는
-경우에만 사용한다. 편집기는 local edit/review, 인접 파일 관리, 정확한 file reference와
-단일-file 문제 실행까지만 담당한다. Project 단위의 search, language intelligence, build,
-test, dependency 관리, debugging과 광범위한 automation은 terminal 또는 project에 둔다.
-Treesitter와 LSP 기반 기능은 Neovim 유지 범위에 포함하지 않는다.
+**Boundary:** `config/nvim/init.lua`가 일반 editor runtime을,
+`config/nvim/plugin/lsp.lua`가 공통 LSP 동작을, `config/nvim/lsp/*.lua`가 언어별 server
+설정을 소유한다. `init.lua`는 저장소의 다른 Neovim 설정 파일을 `require`하거나 `source`하지
+않으며, 해당 파일이 없어도 기본 편집 session이 오류 없이 시작되어야 한다. 분리된 설정의
+부재는 그 설정이 제공하는 기능만 비활성화한다. 기존 fold와 의도적으로 비활성화한 rollback
+option을 보존하고, language intelligence는 Neovim 내장 LSP client로 구현한다. Plugin은 내장
+기능으로 대체할 수 없는 경우에만 사용한다. Project 단위 search, dependency 관리, build,
+test와 debugging은 terminal 또는 project가 소유한다. Language server와 formatter 설치·갱신은
+`TOOLS-001`을 따르며 Treesitter는 Neovim 유지 범위에 포함하지 않는다.
 
-**Change condition:** 단일-file 구성, editor와 project의 책임 경계, plugin 허용 기준 또는
-Treesitter와 LSP 배제 결정을 바꿀 때만 변경한다.
+**Change condition:** Neovim 설정 소유권, editor와 project의 책임 경계, plugin 허용 기준,
+또는 Treesitter 배제 결정을 바꿀 때만 변경한다.
 
 ## COLOR-001
 
