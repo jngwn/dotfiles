@@ -21,16 +21,19 @@
 --   [D / ]D            First / last diagnostic
 --   [e / ]e            Previous / next error
 --   [w / ]w            Previous / next warning
---   <leader>d          Open and focus diagnostic popup
+--   <leader>d          Focus diagnostic popup
 --
 -- Completion (Insert mode)
 --   <leader><Space>    Open completion popup
---   Tab / Shift-Tab    Select next / previous item
---   Enter              Confirm selected item
+--   Up / Down          Select previous / next item
+--   Shift-Tab          Select previous item
+--   Tab / Enter        Confirm selected item
 --
 -- Feature controls
---   <leader>cp                 Toggle completion popup
+--   <leader>cp                 Toggle completion
 --   :LspDiagnostics [state]    Diagnostics
+--   :LspDiagnosticPopup [state]
+--                              Automatic diagnostic popup
 --   :LspFormatOnSave[!] [state]
 --                              Format on save (! = current buffer)
 --   :LspInlayHints [state]     Inlay hints
@@ -49,14 +52,16 @@
 -- Shared LSP behavior {{{
 local features = {
   completion = true,
+  diagnostic_popup = true,
   diagnostics = true,
   format_on_save = true,
   inlay_hints = false,
 }
 
-vim.opt.completeopt = { 'menuone', 'noselect', 'popup' }
+vim.opt.completeopt = { 'menuone', 'noinsert' }
 vim.opt.pumborder = 'single'
 vim.opt.pumblend = 0
+vim.opt.pumheight = 10
 vim.opt.winborder = 'single'
 vim.opt.signcolumn = 'yes'
 
@@ -94,13 +99,43 @@ vim.keymap.set('n', ']w', diagnostic_jump(1, vim.diagnostic.severity.WARN), {
   desc = 'Next diagnostic warning',
 })
 
+local completion_keyword_triggers = { '_' }
+for code = string.byte '0', string.byte '9' do
+  table.insert(completion_keyword_triggers, string.char(code))
+end
+for code = string.byte 'A', string.byte 'Z' do
+  table.insert(completion_keyword_triggers, string.char(code))
+end
+for code = string.byte 'a', string.byte 'z' do
+  table.insert(completion_keyword_triggers, string.char(code))
+end
+
+local function enable_completion(client, bufnr, enabled)
+  local provider = client.server_capabilities.completionProvider
+  if enabled and type(provider) == 'table' then
+    local triggers = provider.triggerCharacters or {}
+    local seen = {}
+    for _, trigger in ipairs(triggers) do
+      seen[trigger] = true
+    end
+    for _, trigger in ipairs(completion_keyword_triggers) do
+      if not seen[trigger] then
+        table.insert(triggers, trigger)
+        seen[trigger] = true
+      end
+    end
+    provider.triggerCharacters = triggers
+  end
+
+  vim.lsp.completion.enable(enabled, client.id, bufnr, { autotrigger = true })
+end
+
 local function set_completion(enabled)
   features.completion = enabled
-
   for _, client in ipairs(vim.lsp.get_clients()) do
     for bufnr in pairs(client.attached_buffers) do
       if client:supports_method('textDocument/completion', bufnr) then
-        vim.lsp.completion.enable(enabled, client.id, bufnr, { autotrigger = false })
+        enable_completion(client, bufnr, enabled)
       end
     end
   end
@@ -117,7 +152,7 @@ local function create_feature_command(name, feature, label, apply)
     local enabled = requested == 'on'
       or ((requested == '' or requested == 'toggle') and not features[feature])
     features[feature] = enabled
-    apply(enabled)
+    if apply then apply(enabled) end
     vim.notify(('LSP %s %s.'):format(label, enabled and 'enabled' or 'disabled'))
   end, {
     nargs = '?',
@@ -132,6 +167,7 @@ create_feature_command(
   'diagnostics',
   function(enabled) vim.diagnostic.enable(enabled) end
 )
+create_feature_command('LspDiagnosticPopup', 'diagnostic_popup', 'diagnostic popup')
 create_feature_command(
   'LspInlayHints',
   'inlay_hints',
@@ -176,7 +212,7 @@ vim.keymap.set('n', '<leader>cp', function()
   set_completion(enabled)
   vim.notify(('LSP completion %s.'):format(enabled and 'enabled' or 'disabled'))
 end, {
-  desc = 'Toggle LSP completion popup',
+  desc = 'Toggle LSP completion',
 })
 
 local function set_lsp_keymaps(bufnr)
@@ -190,13 +226,6 @@ local function set_lsp_keymaps(bufnr)
   })
 end
 
-local function popup_key(popup, fallback)
-  return function()
-    if vim.fn.pumvisible() == 1 then return popup end
-    return fallback
-  end
-end
-
 vim.api.nvim_create_autocmd('LspAttach', {
   group = lsp_group,
   callback = function(event)
@@ -207,19 +236,28 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
     if not client:supports_method 'textDocument/completion' then return end
 
-    vim.lsp.completion.enable(features.completion, client.id, event.buf, { autotrigger = false })
+    enable_completion(client, event.buf, features.completion)
     vim.keymap.set('i', '<leader><Space>', function()
       if features.completion then vim.lsp.completion.get() end
     end, {
       buffer = event.buf,
       desc = 'LSP completion',
     })
-    vim.keymap.set('i', '<Tab>', popup_key('<C-n>', '<Tab>'), {
+    vim.keymap.set('i', '<Tab>', function()
+      if vim.fn.pumvisible() ~= 1 then return '<Tab>' end
+
+      local completion = vim.fn.complete_info { 'selected' }
+      if completion.selected < 0 then return '<C-n><C-y>' end
+      return '<C-y>'
+    end, {
       buffer = event.buf,
-      desc = 'Select next completion item',
+      desc = 'Confirm completion item',
       expr = true,
     })
-    vim.keymap.set('i', '<S-Tab>', popup_key('<C-p>', '<S-Tab>'), {
+    vim.keymap.set('i', '<S-Tab>', function()
+      if vim.fn.pumvisible() == 1 then return '<C-p>' end
+      return '<S-Tab>'
+    end, {
       buffer = event.buf,
       desc = 'Select previous completion item',
       expr = true,
@@ -234,18 +272,31 @@ vim.api.nvim_create_autocmd('LspAttach', {
       expr = true,
     })
   end,
-  desc = 'Enable manual builtin LSP completion',
+  desc = 'Configure builtin LSP completion',
 })
 
-vim.keymap.set('n', '<leader>d', function()
-  if not features.diagnostics then return end
+local function open_diagnostic_float(focus)
+  if not features.diagnostics or (not focus and not features.diagnostic_popup) then return end
 
   local _, winid = vim.diagnostic.open_float {
+    focus = focus,
     focusable = true,
     scope = 'cursor',
   }
-  if winid and vim.api.nvim_win_is_valid(winid) then vim.api.nvim_set_current_win(winid) end
-end, { desc = 'Open and focus diagnostic popup' })
+  if focus and winid and vim.api.nvim_win_is_valid(winid) then
+    vim.api.nvim_set_current_win(winid)
+  end
+end
+
+vim.api.nvim_create_autocmd('CursorHold', {
+  group = lsp_group,
+  callback = function() open_diagnostic_float(false) end,
+  desc = 'Open diagnostic popup under the cursor',
+})
+
+vim.keymap.set('n', '<leader>d', function() open_diagnostic_float(true) end, {
+  desc = 'Focus diagnostic popup',
+})
 
 vim.api.nvim_create_user_command('LspCopyDiagnostics', function()
   local line = vim.api.nvim_win_get_cursor(0)[1] - 1
