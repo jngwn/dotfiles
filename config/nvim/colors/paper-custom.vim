@@ -235,7 +235,7 @@ Hi LspReferenceText NONE lyellow NONE
 Hi LspInlayHint grey NONE NONE
 
 " mini.indentscope
-Hi MiniIndentscopeSymbol blue NONE bold
+Hi MiniIndentscopeSymbol dgrey NONE bold
 hi! link MiniIndentscopeSymbolOff MiniIndentscopeSymbol
 
 " netrw

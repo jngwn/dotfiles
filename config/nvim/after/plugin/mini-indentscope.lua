@@ -17,11 +17,11 @@ local ok, err = pcall(function()
     },
     options = {
       border = 'both',
-      indent_at_cursor = false,
+      indent_at_cursor = true,
       -- Use the body scope while the cursor is on an opening or closing line.
       try_as_border = true,
     },
-    symbol = '│',
+    symbol = '┃',
   }
 end)
 
