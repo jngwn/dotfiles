@@ -54,6 +54,46 @@ _platform_keep_awake() {
   return 1
 }
 
+_copy_to_terminal_clipboard() {
+  if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    if command tmux load-buffer -w -; then
+      return 0
+    fi
+
+    echo "ERROR: Could not copy through tmux terminal integration." >&2
+    return 1
+  fi
+
+  if ! command -v base64 >/dev/null 2>&1; then
+    echo "ERROR: base64 is required for terminal clipboard integration." >&2
+    return 1
+  fi
+
+  local encoded=""
+  if ! encoded="$(command base64)"; then
+    echo "ERROR: Could not encode clipboard text." >&2
+    return 1
+  fi
+  encoded="${encoded//$'\r'/}"
+  encoded="${encoded//$'\n'/}"
+
+  # OSC 52 carries only base64 text, so path bytes cannot inject terminal controls.
+  if ! { printf '\033]52;c;%s\a' "${encoded}" >/dev/tty; } 2>/dev/null; then
+    echo "ERROR: No writable terminal is available for clipboard integration." >&2
+    return 1
+  fi
+}
+
+_platform_copy_to_clipboard() {
+  if _is_remote_shell; then
+    _copy_to_terminal_clipboard
+    return
+  fi
+
+  echo "ERROR: No supported clipboard provider is available." >&2
+  return 1
+}
+
 _reset_shell_names() {
   local name
   for name in "${@}"; do
@@ -111,6 +151,148 @@ _reset_shell_names f
 f() {
   _platform_open_path "${@}"
 }
+
+_validate_path_text() {
+  local -r text="${1}"
+  local -r control_pattern=$'[\001-\037\177]'
+  local LC_ALL=C
+
+  if [[ -z "${text}" ]]; then
+    echo "ERROR: An empty path cannot be copied." >&2
+    return 1
+  fi
+  if [[ "${text}" =~ ${control_pattern} ]]; then
+    echo "ERROR: Paths containing control characters cannot be copied safely." >&2
+    return 1
+  fi
+  if ! command -v iconv >/dev/null 2>&1; then
+    echo "ERROR: iconv is required to validate path text." >&2
+    return 1
+  fi
+  if ! printf '%s' "${text}" | command iconv -f UTF-8 -t UTF-8 >/dev/null 2>&1; then
+    echo "ERROR: Paths must contain valid UTF-8 text." >&2
+    return 1
+  fi
+}
+
+_validate_copy_path() {
+  local -r path="${1}"
+  _validate_path_text "${path}" || return
+
+  if [[ ! -e "${path}" && ! -L "${path}" ]]; then
+    printf 'ERROR: Path does not exist: %q\n' "${path}" >&2
+    return 1
+  fi
+}
+
+_absolute_copy_path() {
+  local -r path="${1}"
+  local resolved=""
+
+  case "${path}" in
+    / | . | .. | */ | */. | */..)
+      resolved="$(builtin cd -P -- "${path}" && printf '%s/' "${PWD}")" || return
+      printf '%s' "${resolved%/}"
+      return
+      ;;
+  esac
+
+  local parent="."
+  local name="${path}"
+  if [[ "${path}" == */* ]]; then
+    parent="${path%/*}"
+    name="${path##*/}"
+    [[ -n "${parent}" ]] || parent="/"
+  fi
+
+  resolved="$(builtin cd -P -- "${parent}" && printf '%s/' "${PWD}")" || return
+  resolved="${resolved%/}"
+  if [[ "${resolved}" == "/" ]]; then
+    printf '/%s' "${name}"
+  else
+    printf '%s/%s' "${resolved}" "${name}"
+  fi
+}
+
+_relative_copy_path() {
+  local absolute_path=""
+  local current_dir=""
+  absolute_path="$(_absolute_copy_path "${1}")" || return
+  current_dir="$(builtin cd -P -- . && printf '%s/' "${PWD}")" || return
+  current_dir="${current_dir%/}"
+
+  local -a absolute_parts=()
+  local -a current_parts=()
+  local -a relative_parts=()
+  local IFS="/"
+  read -r -a absolute_parts <<<"${absolute_path#/}"
+  read -r -a current_parts <<<"${current_dir#/}"
+
+  local common=0
+  while ((common < ${#absolute_parts[@]} && common < ${#current_parts[@]})) &&
+    [[ "${absolute_parts[common]}" == "${current_parts[common]}" ]]; do
+    ((common += 1))
+  done
+
+  local index
+  for ((index = common; index < ${#current_parts[@]}; index += 1)); do
+    relative_parts+=("..")
+  done
+  for ((index = common; index < ${#absolute_parts[@]}; index += 1)); do
+    relative_parts+=("${absolute_parts[index]}")
+  done
+
+  if ((${#relative_parts[@]} == 0)); then
+    printf '.'
+  else
+    _join_by '/' "${relative_parts[@]}"
+  fi
+}
+
+_copy_paths() {
+  local -r format="${1}"
+  shift
+
+  if [[ "${1:-}" == "--" ]]; then
+    shift
+  fi
+  if (($# == 0)); then
+    set -- .
+  fi
+
+  local path=""
+  local formatted_path=""
+  local -a formatted_paths=()
+  for path in "${@}"; do
+    _validate_copy_path "${path}" || return
+
+    case "${format}" in
+      absolute) formatted_path="$(_absolute_copy_path "${path}")" || return ;;
+      relative) formatted_path="$(_relative_copy_path "${path}")" || return ;;
+      *)
+        echo "ERROR: Unsupported path copy format: ${format}" >&2
+        return 2
+        ;;
+    esac
+    _validate_path_text "${formatted_path}" || return
+    formatted_paths+=("${formatted_path}")
+  done
+
+  local clipboard_text=""
+  clipboard_text="$(_join_by $'\n' "${formatted_paths[@]}")"
+  if ! printf '%s' "${clipboard_text}" | _platform_copy_to_clipboard; then
+    return 1
+  fi
+
+  printf 'DONE: Copied %d path(s):\n' "${#formatted_paths[@]}"
+  for formatted_path in "${formatted_paths[@]}"; do
+    printf '  %q\n' "${formatted_path}"
+  done
+}
+
+_reset_shell_names cpa cpr
+cpa() { _copy_paths absolute "${@}"; }
+cpr() { _copy_paths relative "${@}"; }
 
 _reset_shell_names yz
 yz() {

@@ -29,6 +29,23 @@ _platform_keep_awake() {
     "${@}"
 }
 
+_platform_copy_to_clipboard() {
+  if _is_remote_shell; then
+    _copy_to_terminal_clipboard
+  elif [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+    command wl-copy --type 'text/plain;charset=utf-8'
+  elif [[ -n "${DISPLAY:-}" ]] && command -v xsel >/dev/null 2>&1; then
+    command xsel --clipboard --input
+  elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+    command xclip -selection clipboard -in -target UTF8_STRING
+  elif [[ -n "${TMUX:-}" ]]; then
+    _copy_to_terminal_clipboard
+  else
+    echo "ERROR: No local Linux clipboard provider is available." >&2
+    return 1
+  fi
+}
+
 _reset_shell_names cp1 ls ll lsa
 alias cp1='cp --force --no-preserve=all --recursive --verbose'
 alias ls='ls -AF --color=auto'

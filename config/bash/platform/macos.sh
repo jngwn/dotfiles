@@ -53,6 +53,19 @@ _platform_keep_awake() {
   command caffeinate -i "${@}"
 }
 
+_platform_copy_to_clipboard() {
+  if _is_remote_shell; then
+    _copy_to_terminal_clipboard
+  elif command -v pbcopy >/dev/null 2>&1; then
+    command pbcopy
+  elif [[ -n "${TMUX:-}" ]]; then
+    _copy_to_terminal_clipboard
+  else
+    echo "ERROR: No local macOS clipboard provider is available." >&2
+    return 1
+  fi
+}
+
 _reset_shell_names cp1 ls ll lsa
 alias cp1='cp -RfXv'
 alias ls='ls -AFG'
