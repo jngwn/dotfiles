@@ -1,7 +1,10 @@
 return {
   cmd = { 'lua-language-server' },
   filetypes = { 'lua' },
-  root_markers = { '.luarc.json', '.luarc.jsonc', '.stylua.toml', '.git' },
+  root_dir = function(bufnr, on_dir)
+    local root = vim.fs.root(bufnr, { '.stylua.toml' })
+    if root and vim.uv.fs_stat(vim.fs.joinpath(root, 'init.lua')) then on_dir(root) end
+  end,
   settings = {
     Lua = {
       runtime = {

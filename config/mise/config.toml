@@ -5,6 +5,7 @@ use_versions_host_track = false
 node = "lts"
 "npm:typescript" = { version = "latest", depends = "node" }
 "npm:vscode-langservers-extracted" = { version = "latest", depends = "node" }
+"npm:bash-language-server" = { version = "latest", depends = "node" }
 "npm:@tailwindcss/language-server" = { version = "latest", depends = "node" }
 "npm:@olrtg/emmet-language-server" = { version = "latest", depends = "node" }
 java = "temurin-21"

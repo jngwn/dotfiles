@@ -45,6 +45,7 @@
 --   :lsp restart [server_name]
 --   Lua: lua_ls                       Rust: rust_analyzer
 --   Python: ty, ruff                  C/C++: clangd
+--   Bash: bashls                      TOML: taplo
 --   JavaScript/TypeScript: ts_native, biome
 --   Web: html, cssls, jsonls, tailwindcss, emmet_language_server
 -- }}}
@@ -323,10 +324,13 @@ end, {
 -- Format on save {{{
 local format_timeout_ms = 2000
 local lsp_formatters = {
+  bash = 'bashls',
   c = 'clangd',
   cpp = 'clangd',
   python = 'ruff',
   rust = 'rust_analyzer',
+  sh = 'bashls',
+  toml = 'taplo',
 }
 local biome_filetypes = {
   css = true,
@@ -339,6 +343,11 @@ local biome_filetypes = {
   typescriptreact = true,
 }
 local biome_config_files = { 'biome.json', 'biome.jsonc' }
+
+local function is_neovim_config(path)
+  local root = vim.fs.root(path, { '.stylua.toml' })
+  return root ~= nil and vim.uv.fs_stat(vim.fs.joinpath(root, 'init.lua')) ~= nil
+end
 
 local function replace_with_formatted_output(bufnr, tool, command)
   local path = vim.api.nvim_buf_get_name(bufnr)
@@ -417,7 +426,7 @@ vim.api.nvim_create_autocmd('BufWritePre', {
     if not format_on_save_enabled(event.buf) then return end
 
     local filetype = vim.bo[event.buf].filetype
-    if filetype == 'lua' then
+    if filetype == 'lua' and is_neovim_config(vim.api.nvim_buf_get_name(event.buf)) then
       format_lua(event.buf)
       return
     end
@@ -453,6 +462,8 @@ vim.lsp.enable {
   'ty',
   'ruff',
   'clangd',
+  'bashls',
+  'taplo',
   'ts_native',
   'biome',
   'html',
