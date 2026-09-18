@@ -105,6 +105,7 @@ vim.keymap.set('v', '>', '>gv', { desc = 'Indent right and keep selection' })
 
 vim.keymap.set('n', '<leader>v', '<C-v>', { desc = 'Enter blockwise visual mode' })
 vim.keymap.set('i', '{<CR>', '{<CR>}<Esc>O', { desc = 'Expand braces' })
+vim.keymap.set('i', '{;<CR>', '{<CR>};<Esc>O', { desc = 'Expand braces with trailing semicolon' })
 vim.keymap.set('n', '<leader>bb', '<C-o>', { desc = 'Jump Back' })
 vim.keymap.set('n', '<leader>gg', '<C-i>', { desc = 'Jump Forward' })
 vim.keymap.set('n', '<leader>ss', '<C-^>', { desc = 'Switch Alternate Buffer' })
