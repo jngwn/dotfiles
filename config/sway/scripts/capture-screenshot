@@ -13,10 +13,15 @@ _select_geometry() {
 _save_screenshot() {
   local geometry="${1:-}"
   local -r screenshot_dir="${HOME}/Pictures/Screenshots"
-  local -r screenshot_file="${screenshot_dir}/$(date +%Y%m%d-%H%M%S).png"
+  local -r screenshot_file="${screenshot_dir}/$(date +%Y%m%d-%H%M%S-%N)-$$.png"
 
   if ! mkdir -p "${screenshot_dir}"; then
     _show_osd "Screenshot directory unavailable"
+    return 1
+  fi
+
+  if [[ -e "${screenshot_file}" || -L "${screenshot_file}" ]]; then
+    _show_osd "Screenshot filename collision"
     return 1
   fi
 

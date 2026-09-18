@@ -35,7 +35,12 @@ if ! mkdir -p "${recording_dir}"; then
 fi
 
 geometry="$(slurp)" || exit 0
-recording_file="${recording_dir}/$(date +%Y%m%d-%H%M%S).mp4"
+recording_file="${recording_dir}/$(date +%Y%m%d-%H%M%S-%N)-$$.mp4"
+
+if [[ -e "${recording_file}" || -L "${recording_file}" ]]; then
+  _show_osd "Recording filename collision"
+  exit 1
+fi
 
 /usr/bin/wf-recorder -g "${geometry}" -f "${recording_file}" &
 recorder_pid=$!
