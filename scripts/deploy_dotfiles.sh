@@ -2,15 +2,25 @@
 
 start_logging() {
   local -r xdg_state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
+  local -r log_state_dir="${xdg_state_home}/dotfiles"
   local -r log_dir="${xdg_state_home}/dotfiles/logs"
   local -r log_file="${log_dir}/$(date +%Y%m%d-%H%M%S)-deploy-dotfiles.log"
+  local log_path
 
   if ! command -v tee >/dev/null 2>&1; then
     echo "ERROR: tee is required for logging." >&2
     exit 1
   fi
 
-  if ! mkdir -p "${log_dir}" || ! chmod 0700 "${log_dir}"; then
+  for log_path in "${log_state_dir}" "${log_dir}"; do
+    if [[ -L "${log_path}" ]] ||
+      [[ -e "${log_path}" && (! -d "${log_path}" || ! -O "${log_path}") ]]; then
+      echo "ERROR: Refusing an unsafe log directory: ${log_path}" >&2
+      exit 1
+    fi
+  done
+
+  if ! mkdir -p "${log_dir}" || ! chmod 0700 "${log_state_dir}" "${log_dir}"; then
     echo "ERROR: Could not create or protect log directory: ${log_dir}" >&2
     exit 1
   fi
@@ -406,9 +416,6 @@ symlink_dotfiles() {
 }
 
 main() {
-  start_logging
-  trap cleanup_deployment_manifest_temp EXIT
-
   if (($# > 0)); then
     echo "ERROR: deploy_dotfiles.sh does not accept options."
     echo "   Run without arguments."
@@ -417,6 +424,8 @@ main() {
 
   refuse_root_execution
   validate_platform || exit 1
+  start_logging
+  trap cleanup_deployment_manifest_temp EXIT
   echo "INFO: Deployment profile: ${deployment_profile}"
   echo ""
   show_script_info

@@ -4,15 +4,25 @@
 
 start_logging() { # {{{
   local -r xdg_state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
+  local -r log_state_dir="${xdg_state_home}/dotfiles"
   local -r log_dir="${xdg_state_home}/dotfiles/logs"
   local -r log_file="${log_dir}/$(date +%Y%m%d-%H%M%S)-bootstrap.log"
+  local log_path
 
   if ! command -v tee >/dev/null 2>&1; then
     echo "ERROR: tee is required for logging." >&2
     exit 1
   fi
 
-  if ! mkdir -p "${log_dir}" || ! chmod 0700 "${log_dir}"; then
+  for log_path in "${log_state_dir}" "${log_dir}"; do
+    if [[ -L "${log_path}" ]] ||
+      [[ -e "${log_path}" && (! -d "${log_path}" || ! -O "${log_path}") ]]; then
+      echo "ERROR: Refusing an unsafe log directory: ${log_path}" >&2
+      exit 1
+    fi
+  done
+
+  if ! mkdir -p "${log_dir}" || ! chmod 0700 "${log_state_dir}" "${log_dir}"; then
     echo "ERROR: Could not create or protect log directory: ${log_dir}" >&2
     exit 1
   fi
@@ -41,7 +51,6 @@ find_and_move_to_dotfiles_root() { # {{{
     return 1
   }
 
-  echo "INFO: Dotfiles root: ${dotfiles_root}"
   cd "${dotfiles_root}" || {
     echo "ERROR: Unable to move to directory '${dotfiles_root}'."
     return 1
@@ -1936,8 +1945,6 @@ show_completion_notice() { # {{{
 # Main {{{
 
 main() { # {{{
-  start_logging
-
   if (($# > 0)); then
     echo "ERROR: bootstrap.sh does not accept options."
     echo "   Run without arguments."
@@ -1952,6 +1959,8 @@ main() { # {{{
 
   refuse_root_execution
   find_and_move_to_dotfiles_root || exit 1
+  start_logging
+  echo "INFO: Dotfiles root: ${dotfiles_root}"
 
   local -a tasks=(
     show_script_info
