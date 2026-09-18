@@ -409,7 +409,7 @@ install_base_packages() { # {{{
 
   _install_required_packages \
     bash bash-completion tmux neovim fastfetch \
-    git ripgrep fd jq git-delta curl wget ca-certificates \
+    git ripgrep fd jq git-delta diffutils curl wget ca-certificates \
     openssl openssh \
     glibc util-linux base-devel \
     zlib bzip2 readline sqlite libffi xz \
@@ -515,7 +515,7 @@ install_sway_session_packages() { # {{{
   local failed=false
 
   _install_required_packages \
-    sway swaybg swayidle swaylock \
+    sway swaybg swayidle swaylock less \
     greetd greetd-regreet cage \
     xorg-xwayland \
     xdg-desktop-portal-wlr || failed=true
