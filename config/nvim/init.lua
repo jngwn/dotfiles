@@ -68,7 +68,9 @@ vim.opt.isfname:remove '='
 vim.opt.modeline = false
 vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold' }, {
   group = init_group,
-  command = 'checktime', -- Detect files changed by external tools.
+  callback = function()
+    if vim.fn.getcmdwintype() == '' then vim.cmd.checktime() end
+  end,
   desc = 'Detect files changed by external tools',
 })
 
