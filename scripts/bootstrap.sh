@@ -6,7 +6,7 @@ start_logging() { # {{{
   local -r xdg_state_home="${XDG_STATE_HOME:-${HOME}/.local/state}"
   local -r log_state_dir="${xdg_state_home}/dotfiles"
   local -r log_dir="${xdg_state_home}/dotfiles/logs"
-  local -r log_file="${log_dir}/$(date +%Y%m%d-%H%M%S)-bootstrap.log"
+  local -r log_file="${log_dir}/$(date +%Y%m%d-%H%M%S)-$$-bootstrap.log"
   local log_path
 
   if ! command -v tee >/dev/null 2>&1; then
@@ -27,8 +27,17 @@ start_logging() { # {{{
     exit 1
   fi
 
-  if ! touch "${log_file}" || ! chmod 0600 "${log_file}"; then
-    echo "ERROR: Could not create or protect log file: ${log_file}" >&2
+  if [[ -e "${log_file}" || -L "${log_file}" ]]; then
+    echo "ERROR: Refusing an existing log file: ${log_file}" >&2
+    exit 1
+  fi
+
+  if ! (
+    umask 077
+    set -o noclobber
+    : >"${log_file}"
+  ) 2>/dev/null; then
+    echo "ERROR: Could not safely create log file: ${log_file}" >&2
     exit 1
   fi
 
