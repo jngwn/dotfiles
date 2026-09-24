@@ -181,6 +181,15 @@ configuring the environment, so establish network access first. Run:
 ./scripts/bootstrap.sh
 ```
 
+On Native Arch, the bootstrap installs yay from its AUR build files if no working
+copy is available. It lists the fetched files and prints the `PKGBUILD`. While
+the confirmation prompt waits, inspect any other listed files in the displayed
+temporary directory from another terminal. Type `yes` to build and install the
+package.
+Declining or running without an interactive terminal records `install_yay` as a
+failed task. Fix the cause and rerun the bootstrap. WSL skips this task. To
+install or update AUR packages later, invoke yay manually.
+
 After setup begins, the bootstrap attempts every declared task even if an earlier
 one fails. At the end it lists all failed tasks and exits nonzero; review the
 earlier error output, correct the causes, and rerun the same command. Warnings do

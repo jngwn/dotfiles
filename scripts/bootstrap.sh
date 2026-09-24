@@ -436,6 +436,80 @@ install_base_packages() { # {{{
   [[ "${failed}" == "false" ]]
 } # }}}
 
+install_yay() { # {{{
+  if is_wsl; then
+    echo "INFO: Skipping AUR helper installation in WSL."
+    return 0
+  fi
+
+  _require_package_mutations || return 1
+
+  if command -v yay >/dev/null 2>&1 && yay --version >/dev/null 2>&1; then
+    echo "DONE: yay is already available."
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    echo "ERROR: Installing yay requires an interactive terminal to review AUR build files."
+    return 1
+  fi
+
+  if ! command -v git >/dev/null 2>&1 || ! command -v makepkg >/dev/null 2>&1 ||
+    ! pacman -Qq base-devel >/dev/null 2>&1; then
+    echo "ERROR: Installing yay requires git, makepkg, and base-devel from the completed base package task."
+    return 1
+  fi
+
+  local build_dir=""
+  build_dir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-yay.XXXXXXXX")" || {
+    echo "ERROR: Could not create a temporary directory for the yay build."
+    return 1
+  }
+
+  local installed=false
+  if (
+    git clone --depth=1 -- https://aur.archlinux.org/yay.git "${build_dir}/yay" || exit 1
+    cd "${build_dir}/yay" || exit 1
+
+    local revision=""
+    revision="$(git rev-parse HEAD)" || exit 1
+    echo "INFO: yay AUR revision: ${revision}"
+    echo "INFO: Review the AUR build files in ${build_dir}/yay before installing:"
+    git ls-files || exit 1
+    if [[ ! -f PKGBUILD || -L PKGBUILD ]]; then
+      echo "ERROR: The yay AUR checkout has no regular PKGBUILD."
+      exit 1
+    fi
+    cat -- PKGBUILD || exit 1
+    local response=""
+    if ! read -r -p "Type yes after reviewing the build files to install yay: " response ||
+      [[ "${response}" != "yes" ]]; then
+      echo "ERROR: yay installation was not confirmed."
+      exit 1
+    fi
+
+    run_as_target_user makepkg -si --noconfirm || exit 1
+    if ! pacman -Qq yay >/dev/null 2>&1 || ! yay --version >/dev/null 2>&1; then
+      echo "ERROR: yay was installed but is not usable."
+      exit 1
+    fi
+  ); then
+    installed=true
+  fi
+
+  if ! rm -rf -- "${build_dir}"; then
+    echo "ERROR: Could not remove temporary yay build files: ${build_dir}"
+    return 1
+  fi
+
+  if [[ "${installed}" != "true" ]]; then
+    echo "ERROR: yay installation did not complete."
+    return 1
+  fi
+
+  echo "DONE: yay is installed."
+} # }}}
+
 install_development_packages() { # {{{
   _require_package_mutations || return 1
 
@@ -1959,6 +2033,7 @@ main() { # {{{
     show_script_info
     upgrade_packages
     install_base_packages
+    install_yay
     install_development_packages
     install_desktop_foundation_packages
     install_sway_session_packages

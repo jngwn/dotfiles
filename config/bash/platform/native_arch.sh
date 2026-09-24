@@ -1,4 +1,9 @@
-_reset_shell_names reload_config reloadall
+_reset_shell_names yayss yaysi reload_config reloadall
+
+if command -v yay >/dev/null 2>&1; then
+  alias yayss='yay -Ss'
+  alias yaysi='yay -Si'
+fi
 
 _reload_sway_session_config() {
   local -r user_manager_ready="${1:-false}"

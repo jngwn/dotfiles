@@ -181,6 +181,10 @@ Arch repository release를 따른다. Manager가 요구하는 immutable revision
 필요하다. 새 installer, binary source, remote 또는 integrity 검증 우회는 별도의
 supply-chain 결정 없이는 추가하지 않는다.
 
+Native Arch bootstrap은 사용 가능한 yay가 없을 때 AUR 빌드 파일을 사용자가
+확인한 뒤 일반 사용자로 빌드하고 pacman package로 설치한다. WSL에는 설치하지
+않으며 yay를 통한 AUR package 설치와 update는 사용자가 직접 시작한다.
+
 WSL container runtime은 Windows host가 소유한다. 개발은 source, toolchain, build/test,
 server와 browser를 local에서 실행하는 범위가 기본이며 SSH와 GUI-less fallback의 존재가
 remote workstation 지원을 의미하지 않는다.
