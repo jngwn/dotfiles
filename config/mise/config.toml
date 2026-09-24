@@ -1,0 +1,23 @@
+[settings]
+use_versions_host_track = false
+
+[tools]
+node = "lts"
+"npm:typescript" = { version = "latest", depends = "node" }
+"npm:vscode-langservers-extracted" = { version = "latest", depends = "node" }
+"npm:bash-language-server" = { version = "latest", depends = "node" }
+"npm:@tailwindcss/language-server" = { version = "latest", depends = "node" }
+"npm:@olrtg/emmet-language-server" = { version = "latest", depends = "node" }
+java = "temurin-21"
+rust = { version = "latest", profile = "minimal", components = [
+  "clippy",
+  "rust-analyzer",
+  "rust-src",
+  "rustfmt",
+] }
+uv = "latest"
+"pypi:ruff" = { version = "latest", depends = "uv" }
+"pypi:ty" = { version = "latest", depends = "uv" }
+"aqua:biomejs/biome" = "latest"
+"github:yt-dlp/yt-dlp-nightly-builds" = { version = "latest", bin = "yt-dlp", prerelease = true }
+"aqua:openai/codex" = "latest"
