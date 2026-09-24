@@ -196,7 +196,7 @@ _set_prompt() {
     context='[ssh \u@\h] '
   fi
 
-  PS1="${leading_newline}\[\e[1;30m\]${context}\w\[\e[0m\]\n${result}\$ "
+  PS1="${leading_newline}\[\e[1;38;2;21;140;134m\][\t]\[\e[0m\]:\[\e[1;30m\]${context}\w\[\e[0m\]\n${result}\$ "
 }
 # Capture the user's exit status first, then retain mise and other existing hooks.
 if [[ ";${PROMPT_COMMAND:-};" != *';_set_prompt;'* ]]; then

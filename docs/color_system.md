@@ -56,7 +56,7 @@ require an explicit color-system decision under `COLOR-001` in `docs/contracts.m
 | `accent.orange` | `#a55000` | Git state, Rust, and macro-like syntax |
 | `accent.red` | `#cc3e28` | ANSI red and syntax error base |
 | `accent.magenta` | `#5c21a5` | Directories and magenta ANSI |
-| `accent.cyan` | `#158c86` | Cyan ANSI, Kubernetes, functions, properties, and links |
+| `accent.cyan` | `#158c86` | Cyan ANSI, Kubernetes, functions, properties, links, and shell prompt time |
 | `accent.comment` | `#2f5f8f` | Comments and CLI highlights |
 | `accent.commentStrong` | `#254a70` | Strong comments |
 
@@ -321,9 +321,11 @@ Use `ink.secondary` for time, metadata, and unselected items.
 Use `state.selection` for passive background-task attention, and `ink.primary`
 on `state.search` for command messages.
 
-In a shell prompt, use ANSI red (`31`) for a failed exit status and bold ANSI
-black (`1;30`) for path and connection context, then reset the attributes. This
-assumes bold text does not remap to the bright ANSI palette.
+In a shell prompt, use bold `accent.cyan` for the bracketed time and the terminal's
+default foreground for the colon that follows it. Use ANSI red (`31`) for a failed
+exit status and bold ANSI black (`1;30`) for path and connection context. Reset
+attributes between these roles. This assumes bold text does not remap to the bright
+ANSI palette.
 
 Use `state.searchActive` with `ink.inverse` for root, read-only, destructive,
 or high-risk states. Use `accent.orange` for git state, `accent.cyan` for
