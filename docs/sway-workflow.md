@@ -67,6 +67,8 @@ H/J/K/L이 익숙하지 않으면 방향키를 그대로 사용해도 된다.
 
 웹 브라우저, Thunar와 그래픽 설정 도구는 `Super+D`에서 이름을 검색해 실행한다. `System Monitor (btop)`과 `Text Editor (Neovim)`도 동일한 실행기에서 찾을 수 있다. 실행기는 현재 Sway 세션에 맞는 항목만 표시하며, 설치된 의존 package가 XFCE 같은 다른 desktop 전용 항목을 제공하더라도 목록에서 숨긴다.
 
+삭제한 앱이 실행기 목록에 남아 있으면 먼저 `~/.local/share/applications/`에서 해당 이름의 `.desktop` 파일을 찾고, 없으면 `/usr/local/share/applications/`와 `/usr/share/applications/`도 확인한다. 파일의 `Exec`가 이미 없는 프로그램을 가리키는지 확인한 뒤 잔여 항목만 지운다. `~/.config/autostart/`는 로그인 자동 실행 설정이므로 실행기 목록과 별개로 확인한다.
+
 `Super+P`는 창 제목과 애플리케이션 이름을 사용해 현재 열려 있는 모든 워크스페이스의 창을 찾는다. 목록은 호출한 동안에만 표시하며 Waybar에는 창 제목을 계속 노출하지 않는다. `Super+Shift+P`는 별도 색인을 만들지 않고 표준 사용자 폴더와 `~/Projects`를 호출할 때 검색한 뒤 기본 애플리케이션으로 연다. 대규모 의존성·빌드·IDE 메타데이터 디렉터리는 검색에서 제외한다.
 
 #### 창 초점과 이동
