@@ -119,27 +119,18 @@ this shared palette.
 
 ## Opacity and Overlays
 
-Keep terminal backgrounds and full-window Paper surfaces opaque. A transient
-overlay may retain a token's exact RGB while reducing its opacity so underlying
-content remains visible. This does not replace the base token or authorize a new
-RGB color.
+Keep visible Paper surfaces opaque, whether they fill a window or form a smaller
+panel. A transparent child may reveal an opaque parent; a structural wrapper may
+remain unpainted around an opaque surface. Neither makes the surface itself
+translucent. Keep readable text and controls on the opaque surface. Use partial
+alpha for visual layers that intentionally blend with the surface beneath them,
+such as highlights or dimmed text. These layers retain their assigned RGB token.
+Use zero alpha to hide unused visual layers, and opaque semantic colors when
+replacing both foreground and background.
 
-Use 50% selection opacity for inactive selections, 40% for selection and symbol
-references, 30% for subtle text references, and 60% for stronger references.
-Secondary search, line, range, gutter, scrollbar, and chrome overlays may use
-50%; an active scrollbar may use 60%. Diff overlays may use 50% for added or
-changed lines, 20% for deleted lines, and 40% for deleted text.
-Use opaque semantic colors when the target replaces both foreground and
-background. Use `state.diffDeleteSoft` when syntax remains visible and an opaque
-deletion background is needed.
-
-For hexadecimal alpha, 30%, 40%, 50%, and 60% correspond to `4d`, `66`, `80`, and
-`99`; 20% corresponds to `33`. Fully transparent shadows use zero alpha.
-Assess contrast against the composited background, not the unblended RGB value.
-Use 90% opacity for a floating editor panel, `ee` (approximately 93%) for a
-launcher surface, and `dd` (approximately 87%) for a paper indicator over the
-ambient backdrop. Do not confuse panel or indicator opacity with terminal
-background transparency.
+In hexadecimal colors, alpha values `33`, `4d`, `66`, `80`, and `99` correspond
+to 20%, 30%, 40%, 50%, and 60% opacity. Assess overlay contrast against the
+composited background.
 
 ## Semantic Mappings
 
@@ -201,6 +192,11 @@ Use these mappings for text editors and IDEs:
 | comments | `accent.comment` | none | none |
 | strong comments | `accent.commentStrong` | none | bold |
 
+For layered editor highlights, use 50% opacity for inactive selections, 40%
+for selection and symbol references, 30% for subtle text references, and 60%
+for stronger references. Secondary search, line, range, gutter, scrollbar, and
+chrome overlays may use 50%; an active scrollbar may use 60%.
+
 The neutral tab and soft cursor rows are retained variants of chrome-colored tabs
 and the black cursor. The color column uses only `paper.subtle`; fold text uses
 secondary ink in bold, while the fold column uses the same colors at normal weight.
@@ -252,21 +248,17 @@ outer frame may include title, activity, and ordinary status surfaces; debugging
 warning, and error states keep their own semantic colors. Popups may use either
 `paper.float` or an opaque `paper.canvas` panel according to the surrounding UI.
 
-Transparent outer wrappers may expose the owning Paper surface instead of
-introducing another panel color. Transparency must not make primary text or
-controls depend on an unknown desktop background.
-
 ### Launchers and Session Surfaces
 
 | Concept | Foreground | Background or border | Style |
 |---|---|---|---|
-| launcher surface | `ink.primary` | `paper.canvas` at approximately 93% opacity | none |
+| launcher surface | `ink.primary` | `paper.canvas` | none |
 | launcher prompt or placeholder | `ink.tertiary` | inherited | none |
 | launcher match or focus | `accent.blue` | inherited | none |
 | launcher selection | `ink.primary` | `state.selection` | none |
 | launcher focus border | none | `accent.blue` | none |
 | session backdrop | `paper.canvas` | `ambient.backdrop` | none |
-| lock indicator | `ink.primary` | `paper.canvas` at approximately 87% opacity | none |
+| lock indicator | `ink.primary` | `paper.canvas` | none |
 | lock clear or verification state | `ink.primary` | `state.selection` | none |
 | lock input or verification ring | none | `accent.blue` | none |
 | lock failure state | `ink.inverse` | `accent.red` | none |
@@ -309,9 +301,11 @@ exposes only one custom color.
 | focused changed text | `ink.primary` | `state.diffText` | bold |
 | deleted lines with syntax-colored text | `ink.primary` | `state.diffDeleteSoft` | none |
 
-Syntax overlays may replace the base foreground on deleted lines. The light
-deletion background preserves readability in that case. Changed syntax-diff
-tokens may be bold while a whole changed-line surface remains normal weight.
+Diff overlays that preserve syntax colors may use 50% opacity for added or
+changed lines, 20% for deleted lines, and 40% for deleted text. For an opaque
+deleted-line background with syntax-colored text, use `state.diffDeleteSoft`;
+its light surface keeps the text readable. Changed syntax-diff tokens may be
+bold while a whole changed-line surface remains normal weight.
 
 ### Prompt, Status, and CLI Tools
 
