@@ -1,0 +1,150 @@
+{
+  "policies": {
+    "AIControls": {
+      "Default": {
+        "Value": "blocked",
+        "Locked": true
+      },
+      "Translations": {
+        "Value": "available",
+        "Locked": true
+      }
+    },
+    "AutofillAddressEnabled": false,
+    "AutofillCreditCardEnabled": false,
+    "BrowserDataBackup": {
+      "AllowBackup": false,
+      "AllowRestore": false
+    },
+    "DisableAccounts": true,
+    "DisableFirefoxStudies": true,
+    "DisableRemoteImprovements": true,
+    "DisableTelemetry": true,
+    "DNSOverHTTPS": {
+      "Enabled": false,
+      "Locked": true
+    },
+    "EnableTrackingProtection": {
+      "Category": "strict",
+      "BaselineExceptions": true,
+      "ConvenienceExceptions": false
+    },
+    "EncryptedMediaExtensions": {
+      "Enabled": true,
+      "Locked": true
+    },
+    "FirefoxHome": {
+      "Search": false,
+      "TopSites": false,
+      "SponsoredTopSites": false,
+      "Highlights": false,
+      "Stories": false,
+      "SponsoredStories": false,
+      "Weather": false,
+      "Locked": true
+    },
+    "FirefoxSuggest": {
+      "WebSuggestions": false,
+      "SponsoredSuggestions": false,
+      "ImproveSuggest": false,
+      "Locked": true
+    },
+    "HardwareAcceleration": true,
+    "HttpsOnlyMode": "enabled",
+    "OfferToSaveLogins": false,
+    "Permissions": {
+      "Autoplay": {
+        "Default": "block-audio"
+      },
+      "Camera": {
+        "BlockNewRequests": true
+      },
+      "Location": {
+        "BlockNewRequests": true
+      },
+      "Microphone": {
+        "BlockNewRequests": true
+      },
+      "Notifications": {
+        "BlockNewRequests": true
+      },
+      "ScreenShare": {
+        "BlockNewRequests": true
+      },
+      "VirtualReality": {
+        "BlockNewRequests": true
+      }
+    },
+    "PictureInPicture": {
+      "Enabled": true,
+      "Locked": true
+    },
+    "PopupBlocking": {
+      "Default": true
+    },
+    "Preferences": {
+      "browser.ctrlTab.sortByRecentlyUsed": {
+        "Status": "default",
+        "Value": true
+      },
+      "browser.link.open_newwindow": {
+        "Status": "default",
+        "Value": 3
+      },
+      "browser.tabs.loadBookmarksInBackground": {
+        "Status": "default",
+        "Value": false
+      },
+      "browser.tabs.loadInBackground": {
+        "Status": "default",
+        "Value": false
+      },
+      "browser.theme.content-theme": {
+        "Status": "default",
+        "Value": 1
+      },
+      "browser.theme.toolbar-theme": {
+        "Status": "default",
+        "Value": 1
+      },
+      "browser.translations.automaticallyPopup": {
+        "Status": "default",
+        "Value": false
+      },
+      "browser.warnOnClose": {
+        "Status": "default",
+        "Value": true
+      },
+      "browser.warnOnQuit": {
+        "Status": "default",
+        "Value": true
+      },
+      "intl.accept_languages": {
+        "Status": "default",
+        "Value": "ko-KR,ko,en-US,en"
+      },
+      "privacy.globalprivacycontrol.enabled": {
+        "Status": "locked",
+        "Value": true
+      }
+    },
+    "RequestedLocales": ["en-US"],
+    "SanitizeOnShutdown": {
+      "Cache": true,
+      "Cookies": false,
+      "FormData": true,
+      "History": true,
+      "Sessions": false,
+      "SiteSettings": false,
+      "Locked": true
+    },
+    "SearchSuggestEnabled": false,
+    "UserMessaging": {
+      "ExtensionRecommendations": false,
+      "FeatureRecommendations": false,
+      "FirefoxLabs": false,
+      "UrlbarInterventions": false,
+      "Locked": true
+    }
+  }
+}

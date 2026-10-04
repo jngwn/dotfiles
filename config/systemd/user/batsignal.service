@@ -1,0 +1,14 @@
+[Unit]
+Description=System battery monitoring and critical power protection
+Documentation=man:batsignal(1)
+PartOf=sway-session.target
+After=sway-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bash %h/.config/power/start-batsignal
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=sway-session.target
