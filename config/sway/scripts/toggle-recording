@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+_show_osd() {
+  swayosd-client --custom-message "${1}" --custom-icon media-record-symbolic 2>/dev/null || true
+}
+
+_refresh_waybar() {
+  # The recording module is event-driven so an idle bar does not poll forever.
+  pkill -RTMIN+8 -x waybar 2>/dev/null || true
+}
+
+runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+pid_file="${runtime_dir}/sway-wf-recorder.pid"
+
+if [[ -r "${pid_file}" ]]; then
+  existing_pid="$(<"${pid_file}")"
+  if [[ "${existing_pid}" =~ ^[0-9]+$ ]] && kill -0 "${existing_pid}" 2>/dev/null; then
+    existing_executable="$(readlink -f "/proc/${existing_pid}/exe" 2>/dev/null || true)"
+    if [[ "${existing_executable}" == "/usr/bin/wf-recorder" ]]; then
+      if kill -INT "${existing_pid}"; then
+        _show_osd "Recording stopping"
+        exit 0
+      fi
+
+      _show_osd "Recording could not stop"
+      exit 1
+    fi
+  fi
+fi
+
+# Hold the lock through PID cleanup; stop requests above remain available.
+exec 9>"${runtime_dir}/sway-wf-recorder.lock" || {
+  _show_osd "Recording lock unavailable"
+  exit 1
+}
+lock_status=0
+flock --nonblock --conflict-exit-code 2 9 || lock_status=$?
+if ((lock_status == 2)); then
+  _show_osd "Recording selection or startup in progress"
+  exit 0
+elif ((lock_status != 0)); then
+  _show_osd "Recording lock failed"
+  exit 1
+fi
+
+recording_dir="${HOME}/Videos/Recordings"
+if ! mkdir -p "${recording_dir}"; then
+  _show_osd "Recording directory unavailable"
+  exit 1
+fi
+
+geometry="$(slurp)" || exit 0
+recording_file="${recording_dir}/$(date +%Y%m%d-%H%M%S-%N)-$$.mp4"
+
+if [[ -e "${recording_file}" || -L "${recording_file}" ]]; then
+  _show_osd "Recording filename collision"
+  exit 1
+fi
+
+# Only this wrapper owns the lock; the recorder must not inherit it.
+/usr/bin/wf-recorder -g "${geometry}" -f "${recording_file}" 9>&- &
+recorder_pid=$!
+
+recorder_ready=false
+for ((attempt = 0; attempt < 20; attempt++)); do
+  recorder_executable="$(readlink -f "/proc/${recorder_pid}/exe" 2>/dev/null || true)"
+  if [[ "${recorder_executable}" == "/usr/bin/wf-recorder" ]]; then
+    recorder_ready=true
+    break
+  fi
+  if ! kill -0 "${recorder_pid}" 2>/dev/null; then
+    break
+  fi
+  sleep 0.05
+done
+
+if [[ "${recorder_ready}" != "true" ]]; then
+  # A failed child may already be gone; stop it only if it survived the check.
+  kill -INT "${recorder_pid}" 2>/dev/null || true
+  _show_osd "Recording could not start"
+  exit 1
+fi
+
+if ! printf '%s\n' "${recorder_pid}" >"${pid_file}"; then
+  kill -INT "${recorder_pid}" 2>/dev/null || true
+  _show_osd "Recording could not start"
+  exit 1
+fi
+
+# These callbacks are invoked indirectly by the traps below.
+# shellcheck disable=SC2329
+cleanup() {
+  if [[ -r "${pid_file}" ]] && [[ "$(<"${pid_file}")" == "${recorder_pid}" ]]; then
+    rm -f "${pid_file}"
+  fi
+  _refresh_waybar
+}
+trap cleanup EXIT
+
+# shellcheck disable=SC2329
+terminate() {
+  kill -INT "${recorder_pid}" 2>/dev/null || true
+}
+trap terminate INT TERM
+
+_show_osd "Recording started"
+_refresh_waybar
+if wait "${recorder_pid}"; then
+  _show_osd "Recording saved"
+  exit 0
+fi
+
+_show_osd "Recording failed"
+exit 1

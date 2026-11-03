@@ -1,0 +1,18 @@
+[settings]
+use_versions_host_track = false
+
+[tools]
+node = "lts"
+java = "temurin"
+uv = "latest"
+"pypi:pre-commit" = { version = "latest", depends = "uv" }
+"pypi:ruff" = { version = "latest", depends = "uv" }
+"pypi:ty" = { version = "latest", depends = "uv" }
+"npm:bash-language-server" = "latest"
+"aqua:LuaLS/lua-language-server" = "latest"
+"aqua:koalaman/shellcheck" = "latest"
+"aqua:mvdan/sh" = "latest"
+"aqua:JohnnyMorganz/StyLua" = "latest"
+"aqua:biomejs/biome" = "latest"
+"github:yt-dlp/yt-dlp-nightly-builds" = { version = "latest", bin = "yt-dlp", prerelease = true }
+"aqua:openai/codex" = "latest"

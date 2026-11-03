@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+if (($# != 1)); then
+  echo "ERROR: Usage: ${0##*/} <pavucontrol|nm-connection-editor|blueman-manager>" >&2
+  exit 2
+fi
+
+application="${1}"
+case "${application}" in
+  pavucontrol) app_id="org.pulseaudio.pavucontrol" ;;
+  nm-connection-editor) app_id="org.gnome.nm_connection_editor" ;;
+  blueman-manager) app_id="org.blueman.Manager" ;;
+  *)
+    echo "ERROR: Unsupported settings application: ${application}" >&2
+    exit 2
+    ;;
+esac
+
+window_id="$(
+  /usr/bin/swaymsg -t get_tree -r |
+    /usr/bin/jq -r --arg app_id "${app_id}" --arg application "${application}" '
+      first(.. | objects |
+        select(.app_id? == $app_id or .app_id? == $application) | .id
+      ) // empty
+    '
+)" || {
+  echo "ERROR: Could not query settings windows." >&2
+  exit 1
+}
+
+if [[ -n "${window_id}" ]]; then
+  exec /usr/bin/swaymsg -q "[con_id=${window_id}] kill"
+fi
+
+exec "/usr/bin/${application}"

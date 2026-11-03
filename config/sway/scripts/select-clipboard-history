@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+umask 077
+
+runtime_dir="${XDG_RUNTIME_DIR:-}"
+[[ "${runtime_dir}" == /* ]] || exit 1
+
+history_dir="${runtime_dir}/cliphist"
+[[ -d "${history_dir}" && -O "${history_dir}" && ! -L "${history_dir}" ]] || exit 1
+
+database="${history_dir}/db"
+selection="$(
+  /usr/bin/cliphist -db-path "${database}" list |
+    /usr/bin/fuzzel --dmenu --only-match --no-run-if-empty --prompt='Clipboard> '
+)" || exit 0
+[[ -n "${selection}" ]] || exit 0
+
+# Decode before replacing the clipboard so a failed lookup leaves it intact.
+decoded_file="$(/usr/bin/mktemp "${history_dir}/decoded.XXXXXXXX")" || exit 1
+trap '/usr/bin/rm -f -- "${decoded_file}"' EXIT
+
+printf '%s\n' "${selection}" |
+  /usr/bin/cliphist -db-path "${database}" decode >"${decoded_file}" || exit 1
+[[ -s "${decoded_file}" ]] || exit 1
+
+/usr/bin/wl-copy <"${decoded_file}"
